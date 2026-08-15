@@ -1,6 +1,6 @@
 import { MediaItem, Genre, TVEpisode, TVSeason } from '../types';
 import { getBlockedMediaInfo } from './blocklist';
-import { getApiUrl } from './api';
+import { fetchWithTimeout } from './api';
 import { normalizeQuery, calculateMatchScore, parseDirectQuery } from './searchNormalization';
 
 export const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
@@ -186,7 +186,7 @@ async function fetchFromTMDB(endpoint: string, params: Record<string, string> = 
   // 3. Define the actual fetch operation directly from TMDB API using working API key
   const fetchWithRetry = async (): Promise<any> => {
     let attempt = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 2;
     let currentDelay = 500;
 
     while (attempt < maxAttempts) {
@@ -197,7 +197,7 @@ async function fetchFromTMDB(endpoint: string, params: Record<string, string> = 
           include_adult: 'false',
           ...params,
         });
-        const response = await fetch(`https://api.themoviedb.org/3${endpoint}?${directParams.toString()}`);
+        const response = await fetchWithTimeout(`https://api.themoviedb.org/3${endpoint}?${directParams.toString()}`, {}, 7000);
 
         if (response.status === 429) {
           attempt++;
@@ -538,7 +538,7 @@ export function getGenreName(id: number): string {
 export async function detectUserCountry(): Promise<{ code: string; name: string }> {
   try {
     // Try reliable JSON IP country service
-    const res = await fetch('https://ipwho.is/');
+    const res = await fetchWithTimeout('https://ipwho.is/', {}, 4000);
     if (res.ok) {
       const data = await res.json();
       if (data && data.success && data.country_code) {
@@ -553,7 +553,7 @@ export async function detectUserCountry(): Promise<{ code: string; name: string 
   }
 
   try {
-    const res2 = await fetch('https://ipapi.co/json/');
+    const res2 = await fetchWithTimeout('https://ipapi.co/json/', {}, 4000);
     if (res2.ok) {
       const data2 = await res2.json();
       if (data2 && data2.country_code) {
