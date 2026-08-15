@@ -183,22 +183,21 @@ async function fetchFromTMDB(endpoint: string, params: Record<string, string> = 
     return inFlightRequests.get(cacheKey);
   }
 
-  // 3. Define the actual fetch operation with retries & exponential backoff via backend proxy
+  // 3. Define the actual fetch operation directly from TMDB API using working API key
   const fetchWithRetry = async (): Promise<any> => {
     let attempt = 0;
-    const maxAttempts = 4;
-    let currentDelay = 800;
+    const maxAttempts = 3;
+    let currentDelay = 500;
 
     while (attempt < maxAttempts) {
       try {
-        // Direct TMDB fetch as requested (Render server is used exclusively for admin & visitor tracking)
         const directParams = new URLSearchParams({
-          api_key: 'c714ec95383c51abcde6afdf2e1571b9',
+          api_key: '428d022b724505527f54c25d80424683',
           language: currentLanguage,
           include_adult: 'false',
           ...params,
         });
-        let response = await fetch(`https://api.themoviedb.org/3${endpoint}?${directParams.toString()}`);
+        const response = await fetch(`https://api.themoviedb.org/3${endpoint}?${directParams.toString()}`);
 
         if (response.status === 429) {
           attempt++;
