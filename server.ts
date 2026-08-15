@@ -1260,10 +1260,54 @@ async function startServer() {
   let globalPinnedMovie: any = null;
   let globalAlertMessage: string = '';
 
+  // Initial load from Supabase if available
+  const loadGlobalSettings = async () => {
+    if (!SB_URL || !SB_KEY) return;
+    try {
+      const headers = { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` };
+      const res = await fetch(`${SB_URL}/rest/v1/settings?select=*`, { headers });
+      if (res.ok) {
+        const settings = await res.json();
+        const pinned = settings.find((s: any) => s.key === 'pinned_movie');
+        const alert = settings.find((s: any) => s.key === 'global_alert');
+        if (pinned) globalPinnedMovie = pinned.value;
+        if (alert) globalAlertMessage = alert.value;
+      }
+    } catch (e) {
+      console.error('Error loading global settings from Supabase:', e);
+    }
+  };
+  loadGlobalSettings();
+
+  const updateSupabaseSetting = async (key: string, value: any) => {
+    if (!SB_URL || !SB_KEY) return;
+    try {
+      const headers = { 
+        'apikey': SB_KEY, 
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      };
+      await fetch(`${SB_URL}/rest/v1/settings`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
+      });
+    } catch (e) {
+      console.error(`Error updating Supabase setting ${key}:`, e);
+    }
+  };
+
   app.post('/api/admin/pin-movie', async (req, res) => {
+    const token = req.headers['authorization'];
+    if (token !== ADMIN_SESSION_TOKEN && token !== `Bearer ${ADMIN_SESSION_TOKEN}`) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+
     const { query } = req.body;
     if (!query) return res.status(400).json({ error: 'Query is required' });
     globalPinnedMovie = query;
+    await updateSupabaseSetting('pinned_movie', query);
     await sendTelegramAlert(`🎬 *تم تثبيت فيلم جديد في واجهة فلكس جو!*\n\nالعنوان / المعرف: \`${query}\``);
     res.json({ success: true, pinnedMovie: query });
   });
@@ -1273,9 +1317,15 @@ async function startServer() {
   });
 
   app.post('/api/admin/broadcast-alert', async (req, res) => {
+    const token = req.headers['authorization'];
+    if (token !== ADMIN_SESSION_TOKEN && token !== `Bearer ${ADMIN_SESSION_TOKEN}`) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'Message is required' });
     globalAlertMessage = message;
+    await updateSupabaseSetting('global_alert', message);
     await sendTelegramAlert(`⚡ *تنبيه عاجل لزوار فلكس جو:*\n\n${message}`);
     res.json({ success: true, message });
   });

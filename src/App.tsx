@@ -375,8 +375,20 @@ export default function App() {
   // Success message toast for actions
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Savage Global Alert & Pinned Movie state
+  const [globalAlert, setGlobalAlert] = useState<string>('');
+  const [pinnedMovieData, setPinnedMovieData] = useState<MediaItem | null>(null);
+
   // 1. Initial catalog data loading
   useEffect(() => {
+    // Fetch Global Alert
+    fetch(getApiUrl('/api/global-alert'))
+      .then(res => res.json())
+      .then(data => {
+        if (data.alertMessage) setGlobalAlert(data.alertMessage);
+      })
+      .catch(() => {});
+
     async function loadCatalog() {
       setLoadingCatalog(true);
       setLoadingTop10(true);
@@ -389,6 +401,24 @@ export default function App() {
         const trendingPool = [...(t1 || [])];
         const animePool = [...(a1 || [])];
 
+        // Fetch Pinned Movie from backend
+        let pinned: MediaItem | null = null;
+        try {
+          const pinnedRes = await fetch(getApiUrl('/api/pinned-movie'));
+          const pinnedData = await pinnedRes.json();
+          if (pinnedData.pinnedMovie) {
+            const query = pinnedData.pinnedMovie;
+            if (/^\d+$/.test(query)) {
+              pinned = await getMovieDetails(Number(query));
+            } else {
+              const searchRes = await searchMedia(query, 1);
+              if (searchRes && searchRes.length > 0) pinned = searchRes[0];
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching pinned movie:', e);
+        }
+
         // Select exactly 50 seeded by daily UTC time
         const trendingDaily = getDaily50(trendingPool, 'trending_hits');
         const animeDaily = getDaily50(animePool, 'japanese_anime_legendary');
@@ -397,7 +427,15 @@ export default function App() {
         setAnimeMedia(animeDaily);
 
         if (trendingDaily.length > 0) {
-          const subset = trendingDaily.filter(m => m.backdrop_path && m.poster_path).slice(0, 6);
+          let subset = trendingDaily.filter(m => m.backdrop_path && m.poster_path).slice(0, 6);
+          
+          // Inject pinned movie if found
+          if (pinned) {
+            setPinnedMovieData(pinned);
+            // Put pinned movie at the start
+            subset = [pinned, ...subset.filter(m => m.id !== (pinned as any).id)].slice(0, 6);
+          }
+          
           setFeaturedHeroes(subset);
           setHeroMedia(subset[0] || trendingDaily[0]);
           setActiveHeroIndex(0);
@@ -723,6 +761,20 @@ export default function App() {
       <VersionGuard lang={lang}>
         <div className="min-h-screen bg-zinc-950 text-white selection:bg-red-600 selection:text-white" dir={lang === 'en' ? 'ltr' : 'rtl'}>
       
+      {/* Global Savage Alert Banner */}
+      {globalAlert && (
+        <div className="bg-red-600 text-white text-[10px] sm:text-xs font-black py-2 px-4 text-center flex items-center justify-center gap-2 animate-in slide-in-from-top duration-500 z-[60] relative shadow-lg">
+          <Sparkles className="w-3.5 h-3.5 animate-pulse shrink-0" />
+          <span className="truncate">{globalAlert}</span>
+          <button 
+            onClick={() => setGlobalAlert('')}
+            className="ml-2 p-1 hover:bg-white/20 rounded-full transition-colors shrink-0"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
       {/* Header / Navbar */}
       <Navbar
         onSearch={handleSearch}
@@ -870,7 +922,9 @@ export default function App() {
                       {/* Badge indicator */}
                       <div className="flex items-center gap-2">
                         <span className="bg-red-600 text-white font-extrabold text-[10px] px-2.5 py-1 rounded-full border border-red-500/20 animate-pulse">
-                          {lang === 'en' ? 'Featured Movie Today 🔥' : 'العرض المميز اليوم 🔥'}
+                          {pinnedMovieData && heroMedia.id === pinnedMovieData.id 
+                            ? (lang === 'en' ? 'Admin Pick: Featured 👑' : 'اختيار الإدارة: مميز 👑')
+                            : (lang === 'en' ? 'Featured Movie Today 🔥' : 'العرض المميز اليوم 🔥')}
                         </span>
                         
                         <span className="text-xs bg-zinc-900/80 backdrop-blur-md border border-zinc-800 text-zinc-300 px-2 py-0.5 rounded-lg font-mono flex items-center gap-1">

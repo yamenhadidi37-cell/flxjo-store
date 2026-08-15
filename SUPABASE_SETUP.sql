@@ -61,3 +61,18 @@ ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow anon insert to visitors" ON visitors FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow anon update to visitors" ON visitors FOR UPDATE USING (true);
 CREATE POLICY "Allow anon select from visitors" ON visitors FOR SELECT USING (true);
+
+-- 8. Create the 'settings' table for admin global controls
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value JSONB,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow anon select from settings" ON settings FOR SELECT USING (true);
+CREATE POLICY "Allow anon insert/update to settings" ON settings FOR ALL USING (true);
+
+-- Initialize settings
+INSERT INTO settings (key, value) VALUES ('pinned_movie', 'null'::jsonb) ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('global_alert', '""'::jsonb) ON CONFLICT (key) DO NOTHING;
