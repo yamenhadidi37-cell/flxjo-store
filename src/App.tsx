@@ -19,6 +19,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { getTranslations } from './translations';
 import { slugify } from './lib/slugify';
+import { getApiUrl } from './lib/api';
 import { getDaily50 } from './lib/dailySeededSelection';
 
 function getOrCreateUserId(): string {
@@ -84,7 +85,7 @@ function WatchPage({ onPreferenceChange, lang }: { onPreferenceChange: () => voi
           // Log media view
           try {
             const countryCode = localStorage.getItem('user_country_code') || 'JO';
-            fetch('/api/log-media', {
+            fetch(getApiUrl('/api/log-media'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -298,7 +299,7 @@ export default function App() {
 
     const trackVisitor = (userStatus: 'online' | 'offline' = 'online') => {
       const movieName = getCurrentMovieName();
-      fetch('/api/track-visitor', {
+      fetch(getApiUrl('/api/track-visitor'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -313,7 +314,7 @@ export default function App() {
       }).catch(() => {});
 
       if (userStatus === 'online') {
-        fetch('/api/user-heartbeat', {
+        fetch(getApiUrl('/api/user-heartbeat'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: uid, country: countryCode, browser })
@@ -330,7 +331,7 @@ export default function App() {
     // Track page exits
     const handleUnload = () => {
       trackVisitor('offline');
-      fetch('/api/log-exit', {
+      fetch(getApiUrl('/api/log-exit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: uid }),
@@ -380,34 +381,13 @@ export default function App() {
       setLoadingCatalog(true);
       setLoadingTop10(true);
       try {
-        const [t1, t2, t3, t4, t5, a1, a2, a3, a4, a5] = await Promise.all([
+        const [t1, a1] = await Promise.all([
           getTrendingMedia(1),
-          getTrendingMedia(2),
-          getTrendingMedia(3),
-          getTrendingMedia(4),
-          getTrendingMedia(5),
           getAnimeList(1),
-          getAnimeList(2),
-          getAnimeList(3),
-          getAnimeList(4),
-          getAnimeList(5),
         ]);
         
-        const trendingPool = [
-          ...(t1 || []), 
-          ...(t2 || []), 
-          ...(t3 || []), 
-          ...(t4 || []), 
-          ...(t5 || [])
-        ];
-        
-        const animePool = [
-          ...(a1 || []), 
-          ...(a2 || []), 
-          ...(a3 || []), 
-          ...(a4 || []), 
-          ...(a5 || [])
-        ];
+        const trendingPool = [...(t1 || [])];
+        const animePool = [...(a1 || [])];
 
         // Select exactly 50 seeded by daily UTC time
         const trendingDaily = getDaily50(trendingPool, 'trending_hits');
@@ -432,7 +412,7 @@ export default function App() {
         
         // Log visit in backend
         try {
-          fetch('/api/log-visit', {
+          fetch(getApiUrl('/api/log-visit'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -567,7 +547,7 @@ export default function App() {
 
     // Log search query in backend
     try {
-      fetch('/api/log-search', {
+      fetch(getApiUrl('/api/log-search'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -585,7 +565,7 @@ export default function App() {
     try {
       if (isSmart) {
         // AI Semantic search using our server route
-        const res = await fetch('/api/smart-search', {
+        const res = await fetch(getApiUrl('/api/smart-search'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query }),
