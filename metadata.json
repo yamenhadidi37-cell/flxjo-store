@@ -1,0 +1,6 @@
+{
+  "name": "FlxJo",
+  "description": "منصة فلكس جو (flxjo) الذكية لمشاهدة الأفلام والمسلسلات مع نظام اقتراحات مخصص لذوقك كلياً.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

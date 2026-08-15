@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+body {
+  background-color: #050505;
+  color: #f4f4f5;
+  font-family: "Cairo", sans-serif;
+}
+
+/* Elegant Stroke Text styling for Top 10 */
+.stroke-text {
+  color: transparent;
+  -webkit-text-stroke: 4px rgba(255, 255, 255, 0.28);
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8));
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.group:hover .stroke-text {
+  -webkit-text-stroke: 4px rgba(239, 68, 68, 0.95);
+  filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.45));
+}
+
+/* Custom thin red/black scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #e50914;
+}
+
+/* Hide scrollbar utility for sleek touch/swipe containers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* 10-second autoplay progress animation */
+@keyframes progress-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.animate-progress-fill {
+  animation: progress-fill 10s linear forwards;
+}
+
+
