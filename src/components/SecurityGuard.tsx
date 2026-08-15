@@ -33,6 +33,7 @@ export default function SecurityGuard({ children, lang }: SecurityGuardProps) {
             hostname.endsWith('.run.app') ||
             hostname.endsWith('.netlify.app') ||
             hostname.endsWith('.vercel.app') ||
+            hostname.endsWith('.github.io') ||
             hostname === 'flxjo.com' ||
             hostname.endsWith('.flxjo.com') ||
             hostname === window.location.hostname; // Framed by itself (same domain)
