@@ -1,5 +1,6 @@
 import { MediaItem, Genre, TVEpisode, TVSeason } from '../types';
 import { getBlockedMediaInfo } from './blocklist';
+import { getApiUrl } from './api';
 import { normalizeQuery, calculateMatchScore, parseDirectQuery } from './searchNormalization';
 
 export const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
@@ -190,18 +191,14 @@ async function fetchFromTMDB(endpoint: string, params: Record<string, string> = 
 
     while (attempt < maxAttempts) {
       try {
-        let response = await fetch(`/api/tmdb?${queryParams.toString()}`);
-
-        if (response.status === 404) {
-          // If proxy is not available or in static SPA deployment, fallback directly to TMDB API
-          const directParams = new URLSearchParams({
-            api_key: 'c714ec95383c51abcde6afdf2e1571b9',
-            language: currentLanguage,
-            include_adult: 'false',
-            ...params,
-          });
-          response = await fetch(`https://api.themoviedb.org/3${endpoint}?${directParams.toString()}`);
-        }
+        // Direct TMDB fetch as requested (Render server is used exclusively for admin & visitor tracking)
+        const directParams = new URLSearchParams({
+          api_key: 'c714ec95383c51abcde6afdf2e1571b9',
+          language: currentLanguage,
+          include_adult: 'false',
+          ...params,
+        });
+        let response = await fetch(`https://api.themoviedb.org/3${endpoint}?${directParams.toString()}`);
 
         if (response.status === 429) {
           attempt++;
