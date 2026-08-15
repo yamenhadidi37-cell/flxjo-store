@@ -192,7 +192,7 @@ async function fetchFromTMDB(endpoint: string, params: Record<string, string> = 
     while (attempt < maxAttempts) {
       try {
         const directParams = new URLSearchParams({
-          api_key: '428d022b724505527f54c25d80424683',
+          api_key: 'e226f4a5f5bace766952aa0d17182959',
           language: currentLanguage,
           include_adult: 'false',
           ...params,
