@@ -14,12 +14,12 @@ import { getTrendingMedia, searchMedia, getAnimeList, getBackdropUrl, getPosterU
 import { rankMediaItems, getWatchHistory, clearWatchHistory, getFavoriteItems } from './lib/algorithm';
 import { 
   Play, Sparkles, AlertCircle, Star, Flame, Film, Tv, Clock, 
-  Trash2, HelpCircle, ChevronRight, Globe, Search, Heart
+  Trash2, HelpCircle, ChevronRight, Globe, Search, Heart, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTranslations } from './translations';
 import { slugify } from './lib/slugify';
-import { getApiUrl } from './lib/api';
+import { fetchWithTimeout, getApiUrl } from './lib/api';
 import { getDaily50 } from './lib/dailySeededSelection';
 
 function getOrCreateUserId(): string {
@@ -382,7 +382,7 @@ export default function App() {
   // 1. Initial catalog data loading
   useEffect(() => {
     // Fetch Global Alert
-    fetch(getApiUrl('/api/global-alert'))
+    fetchWithTimeout(getApiUrl('/api/global-alert'), {}, 5000)
       .then(res => res.json())
       .then(data => {
         if (data.alertMessage) setGlobalAlert(data.alertMessage);
@@ -404,7 +404,7 @@ export default function App() {
         // Fetch Pinned Movie from backend
         let pinned: MediaItem | null = null;
         try {
-          const pinnedRes = await fetch(getApiUrl('/api/pinned-movie'));
+          const pinnedRes = await fetchWithTimeout(getApiUrl('/api/pinned-movie'), {}, 5000);
           const pinnedData = await pinnedRes.json();
           if (pinnedData.pinnedMovie) {
             const query = pinnedData.pinnedMovie;
