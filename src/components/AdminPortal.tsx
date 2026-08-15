@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { getApiUrl } from '../lib/api';
 
 interface AdminPortalProps {
   lang: 'ar' | 'en';
@@ -39,7 +40,7 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
     e.preventDefault();
     setPasswordError('');
     try {
-      const res = await fetch('/api/admin/verify-password', {
+      const res = await fetch(getApiUrl('/api/admin/verify-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
@@ -61,7 +62,7 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
   const loadAdminStats = async (token: string) => {
     setLoadingStats(true);
     try {
-      const res = await fetch(`/api/admin/stats?token=${encodeURIComponent(token)}`, {
+      const res = await fetch(getApiUrl(`/api/admin/stats?token=${encodeURIComponent(token)}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -84,7 +85,7 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
 
   const handleSaveTelegram = async () => {
     try {
-      const res = await fetch('/api/admin/telegram-settings', {
+      const res = await fetch(getApiUrl('/api/admin/telegram-settings'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -106,7 +107,7 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
     setTestingTelegram(true);
     setTelegramTestStatus(null);
     try {
-      const res = await fetch('/api/admin/test-telegram', {
+      const res = await fetch(getApiUrl('/api/admin/test-telegram'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -132,7 +133,7 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
     setSendingPromo(true);
     setPromoStatus(null);
     try {
-      const res = await fetch('/api/admin/promote', {
+      const res = await fetch(getApiUrl('/api/admin/promote'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -637,6 +638,101 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
                       )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              {/* Advanced Savage Admin Controls (Featured Hero Pinned Movie & Visitor Alert Banner) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                {/* 1. Pinned Featured Hero Movie Control */}
+                <div className="bg-zinc-900/30 border border-zinc-900/80 p-6 rounded-3xl space-y-4">
+                  <h3 className="text-base font-black border-b border-zinc-900 pb-2 flex items-center gap-2">
+                    <span>🎬</span>
+                    <span>{lang === 'en' ? 'Pin Featured Hero Movie (تثبيت فيلم الواجهة)' : 'تثبيت فيلم الواجهة الرئيسي (Featured Hero)'}</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    {lang === 'en' 
+                      ? 'Enter any TMDB Movie ID or title to instantly pin it as the massive top banner for all site visitors.' 
+                      : 'أدخل معرف فيلم (TMDB ID) أو اسم الفيلم لتثبيته فوراً كعرض رئيسي في أعلى الواجهة لجميع الزوار.'}
+                  </p>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="e.g. 969681 or Spider-Man"
+                      id="admin-pinned-movie-input"
+                      className="w-full bg-zinc-950/60 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-red-600"
+                    />
+                    <button
+                      onClick={async () => {
+                        const inputEl = document.getElementById('admin-pinned-movie-input') as HTMLInputElement;
+                        if (!inputEl || !inputEl.value.trim()) return;
+                        try {
+                          const res = await fetch(getApiUrl('/api/admin/pin-movie'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                            body: JSON.stringify({ query: inputEl.value.trim(), token: authToken })
+                          });
+                          const data = await res.json();
+                          if (res.ok && data.success) {
+                            alert(lang === 'en' ? 'Featured hero movie pinned successfully!' : 'تم تثبيت الفيلم في الواجهة بنجاح لجميع الزوار! 🔥');
+                            inputEl.value = '';
+                          } else {
+                            alert(data.error || 'Failed to pin movie');
+                          }
+                        } catch (e) {
+                          alert('Error connecting to server');
+                        }
+                      }}
+                      className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-red-600/20"
+                    >
+                      {lang === 'en' ? 'Pin Movie to Homepage Now' : 'تثبيت الفيلم على الواجهة فوراً 🚀'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Global Visitor Popup Notification Announcement */}
+                <div className="bg-zinc-900/30 border border-zinc-900/80 p-6 rounded-3xl space-y-4">
+                  <h3 className="text-base font-black border-b border-zinc-900 pb-2 flex items-center gap-2">
+                    <span>⚡</span>
+                    <span>{lang === 'en' ? 'Global Visitor Alert Banner (إرسال تنبيه عاجل)' : 'إرسال تنبيه عاجل لجميع زوار الموقع ⚡'}</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    {lang === 'en' 
+                      ? 'Broadcast a live floating notification message instantly to every user currently browsing the store.' 
+                      : 'بث رسالة تنبيه عائمة تظهر فوراً لكل مستخدم يتصفح المتجر حالياً.'}
+                  </p>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="e.g. حفل توزيع أوسكار 2026 مباشر الآن!"
+                      id="admin-alert-msg-input"
+                      className="w-full bg-zinc-950/60 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-red-600"
+                    />
+                    <button
+                      onClick={async () => {
+                        const inputEl = document.getElementById('admin-alert-msg-input') as HTMLInputElement;
+                        if (!inputEl || !inputEl.value.trim()) return;
+                        try {
+                          const res = await fetch(getApiUrl('/api/admin/broadcast-alert'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                            body: JSON.stringify({ message: inputEl.value.trim(), token: authToken })
+                          });
+                          const data = await res.json();
+                          if (res.ok && data.success) {
+                            alert(lang === 'en' ? 'Alert broadcast sent to all online visitors!' : 'تم إرسال التنبيه العاجل بنجاح إلى جميع الشاشات المتصلة! ⚡');
+                            inputEl.value = '';
+                          } else {
+                            alert(data.error || 'Failed to send alert');
+                          }
+                        } catch (e) {
+                          alert('Error connecting to server');
+                        }
+                      }}
+                      className="w-full py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-yellow-600/20"
+                    >
+                      {lang === 'en' ? 'Broadcast Alert to All Users' : 'إرسال التنبيه الفوري للجميع 📢'}
+                    </button>
+                  </div>
                 </div>
               </div>
 

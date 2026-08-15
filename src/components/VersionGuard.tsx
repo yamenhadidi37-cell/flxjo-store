@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getApiUrl } from '../lib/api';
 import { RefreshCw, Sparkles, Layers } from 'lucide-react';
 
 interface VersionGuardProps {
@@ -17,7 +18,7 @@ export default function VersionGuard({ children, lang }: VersionGuardProps) {
     const checkVersion = async (isInitial = false) => {
       try {
         // Fetch current version from server
-        const response = await fetch('/api/version');
+        const response = await fetch(getApiUrl('/api/version'));
         if (!response.ok) return;
 
         const data = await response.json();

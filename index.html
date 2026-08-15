@@ -32,13 +32,26 @@
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "FlxJo",
-      "url": "https://flxjo.netlify.app",
+      "url": "https://yamenhadidi37-cell.github.io/flxjo-store",
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "https://flxjo.netlify.app/search?q={search_term_string}",
+        "target": "https://yamenhadidi37-cell.github.io/flxjo-store/search?q={search_term_string}",
         "query-input": "required name=search_term_string"
       }
     }
+    </script>
+    <script>
+      (function () {
+        var search = window.location.search;
+        if (search.indexOf('?/') === 0) {
+          var payload = search.slice(2);
+          var queryIndex = payload.indexOf('&');
+          var route = queryIndex === -1 ? payload : payload.slice(0, queryIndex);
+          var query = queryIndex === -1 ? '' : '?' + payload.slice(queryIndex + 1).replace(/~and~/g, '&');
+          var base = '/flxjo-store/';
+          window.history.replaceState(null, '', base + route + query + window.location.hash);
+        }
+      })();
     </script>
   </head>
   <body>

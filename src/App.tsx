@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useParams, useLocation, Link } fr
 import Navbar from './components/Navbar';
 import MovieCard from './components/MovieCard';
 import WatchModal from './components/WatchModal';
-import SeoGenerator from './components/SeoGenerator';
+
 import SecurityGuard from './components/SecurityGuard';
 import VersionGuard from './components/VersionGuard';
 import AdZone from './components/AdZone';
@@ -183,7 +183,7 @@ export default function App() {
     if (path.startsWith('/anime')) return 'anime';
     if (path.startsWith('/favorites')) return 'favorites';
     if (path.startsWith('/history')) return 'history';
-    if (path.startsWith('/seo')) return 'seo';
+
     return 'home';
   })();
 
@@ -1492,9 +1492,7 @@ export default function App() {
               </div>
             } />
 
-            <Route path="/seo" element={
-              <SeoGenerator lang={lang} />
-            } />
+
 
             <Route path="/admin" element={
               <AdminPortal lang={lang} />

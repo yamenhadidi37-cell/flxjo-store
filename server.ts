@@ -1,15 +1,30 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import { randomBytes } from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ADMIN_SESSION_TOKEN = process.env.ADMIN_SESSION_TOKEN || randomBytes(32).toString('hex');
+
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
   let vite: any;
 
   app.use(express.json());
+
+  // Enable CORS for all origins (GitHub Pages frontend integration)
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
 
   // --- Start of Server-Side Database Logging (for Admin Dashboard) ---
   const LOGS_FILE = path.join(process.cwd(), 'data', 'admin_logs.json');
@@ -195,8 +210,8 @@ async function startServer() {
   // Telegram Notifications Configuration
   const TELEGRAM_CONFIG_PATH = path.join(process.cwd(), '.telegram_config.json');
   const SUBSCRIBERS_PATH = path.join(process.cwd(), '.telegram_subscribers.json');
-  let TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '8119473745:AAHJn8Hi9jrbpuIWI_Jm1Z-jvhKIV9-XNyw';
-  let TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '6877720088';
+  let TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '';
+  let TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 
   let telegramSubscribers = new Set<string>();
   if (TELEGRAM_CHAT_ID) telegramSubscribers.add(TELEGRAM_CHAT_ID);
@@ -354,8 +369,8 @@ async function startServer() {
   }
 
   async function handleTelegramMovieSearch(chatId: string, query: string) {
-    const TMDB_KEY = 'c714ec95383c51abcde6afdf2e1571b9';
-    const BASE_APP_URL = 'https://flxjo.netlify.app';
+    const TMDB_KEY = process.env.TMDB_API_KEY || '';
+    const BASE_APP_URL = process.env.PUBLIC_APP_URL || 'https://yamenhadidi37-cell.github.io/flxjo-store';
 
     try {
       let searchUrl = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=ar-SA&include_adult=false`;
@@ -435,10 +450,10 @@ async function startServer() {
   }
 
   async function handleTelegramMoviePromotion(senderChatId: string, query: string) {
-    const TMDB_KEY = 'c714ec95383c51abcde6afdf2e1571b9';
-    const BASE_APP_URL = 'https://flxjo.netlify.app';
+    const TMDB_KEY = process.env.TMDB_API_KEY || '';
+    const BASE_APP_URL = process.env.PUBLIC_APP_URL || 'https://yamenhadidi37-cell.github.io/flxjo-store';
 
-    const ADMIN_CHAT_ID = '6877720088';
+    const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID || '';
     const isAdmin = (senderChatId === ADMIN_CHAT_ID || senderChatId === TELEGRAM_CHAT_ID);
 
     if (!isAdmin) {
@@ -746,7 +761,7 @@ async function startServer() {
 
               addSubscriber(chatId);
 
-              const ADMIN_CHAT_ID = '6877720088';
+              const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID || '';
               const isAdmin = (chatId === ADMIN_CHAT_ID || chatId === TELEGRAM_CHAT_ID);
 
               if (text.startsWith('/start') || text.startsWith('/help')) {
@@ -845,7 +860,7 @@ async function startServer() {
     }
 
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    const TMDB_API_KEY = process.env.TMDB_API_KEY || 'c714ec95383c51abcde6afdf2e1571b9';
+    const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
     
     const searchParams = new URLSearchParams();
     searchParams.set('api_key', TMDB_API_KEY);
@@ -1100,8 +1115,8 @@ async function startServer() {
   // Verification & Stats API
   app.post('/api/admin/verify-password', (req, res) => {
     const { password } = req.body;
-    if (password === 'flexjo2026') {
-      res.json({ success: true, token: 'session_token_flexjo_2026_secured' });
+    if (ADMIN_PASSWORD && password === ADMIN_PASSWORD) {
+      res.json({ success: true, token: ADMIN_SESSION_TOKEN });
     } else {
       res.status(401).json({ success: false, error: 'Incorrect password' });
     }
@@ -1109,7 +1124,7 @@ async function startServer() {
 
   app.get('/api/admin/stats', async (req, res) => {
     const token = req.query.token || req.headers['authorization'];
-    if (token !== 'session_token_flexjo_2026_secured' && token !== 'Bearer session_token_flexjo_2026_secured') {
+    if (token !== ADMIN_SESSION_TOKEN && token !== `Bearer ${ADMIN_SESSION_TOKEN}`) {
       return res.status(401).json({ error: 'Unauthorized access' });
     }
 
@@ -1241,6 +1256,34 @@ async function startServer() {
     }
   });
 
+  // Advanced Savage Admin Endpoints: Pin Hero Movie & Broadcast Global Alert
+  let globalPinnedMovie: any = null;
+  let globalAlertMessage: string = '';
+
+  app.post('/api/admin/pin-movie', async (req, res) => {
+    const { query } = req.body;
+    if (!query) return res.status(400).json({ error: 'Query is required' });
+    globalPinnedMovie = query;
+    await sendTelegramAlert(`🎬 *تم تثبيت فيلم جديد في واجهة فلكس جو!*\n\nالعنوان / المعرف: \`${query}\``);
+    res.json({ success: true, pinnedMovie: query });
+  });
+
+  app.get('/api/pinned-movie', (req, res) => {
+    res.json({ pinnedMovie: globalPinnedMovie });
+  });
+
+  app.post('/api/admin/broadcast-alert', async (req, res) => {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message is required' });
+    globalAlertMessage = message;
+    await sendTelegramAlert(`⚡ *تنبيه عاجل لزوار فلكس جو:*\n\n${message}`);
+    res.json({ success: true, message });
+  });
+
+  app.get('/api/global-alert', (req, res) => {
+    res.json({ alertMessage: globalAlertMessage });
+  });
+
   // --- End of Server-Side Database Logging ---
 
   // 1.1 Global Security Headers and Referrer check to prevent hotlinking and embedding
@@ -1369,7 +1412,7 @@ async function startServer() {
         poster = `${siteUrl}/logo.jpg`;
       } else if (id && /^\d+$/.test(id)) {
         try {
-          const API_KEY = 'c714ec95383c51abcde6afdf2e1571b9';
+          const API_KEY = process.env.TMDB_API_KEY || '';
           const tmdbRes = await fetchWithTimeout(
             `https://api.themoviedb.org/3/${mediaType}/${id}?api_key=${API_KEY}&language=ar`
           );
@@ -1588,7 +1631,7 @@ Return the response matching the requested schema. Do not enclose the output in 
   async function getMediaSeoDetails(id: string, type: string) {
     try {
       const tmdbType = type === 'tv' ? 'tv' : 'movie';
-      const TMDB_API_KEY = process.env.TMDB_API_KEY || 'c714ec95383c51abcde6afdf2e1571b9';
+      const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
       const url = `https://api.themoviedb.org/3/${tmdbType}/${id}?api_key=${TMDB_API_KEY}&language=ar-SA&append_to_response=credits,genres`;
       const res = await fetch(url);
       if (!res.ok) return null;
@@ -1742,7 +1785,7 @@ Return the response matching the requested schema. Do not enclose the output in 
       return res.set({ 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=1800' }).send(cached);
     }
 
-    const TMDB_API_KEY = process.env.TMDB_API_KEY || 'c714ec95383c51abcde6afdf2e1571b9';
+    const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
 
@@ -1802,7 +1845,7 @@ Return the response matching the requested schema. Do not enclose the output in 
       return res.set({ 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=3600' }).send(cached);
     }
 
-    const TMDB_API_KEY = process.env.TMDB_API_KEY || 'c714ec95383c51abcde6afdf2e1571b9';
+    const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
 
@@ -1863,7 +1906,7 @@ Return the response matching the requested schema. Do not enclose the output in 
       return res.set({ 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=3600' }).send(cached);
     }
 
-    const TMDB_API_KEY = process.env.TMDB_API_KEY || 'c714ec95383c51abcde6afdf2e1571b9';
+    const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
 
@@ -1923,7 +1966,7 @@ Return the response matching the requested schema. Do not enclose the output in 
       return res.set({ 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=3600' }).send(cached);
     }
 
-    const TMDB_API_KEY = process.env.TMDB_API_KEY || 'c714ec95383c51abcde6afdf2e1571b9';
+    const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
 

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Loading…</title>
+    <script>
+      (function () {
+        var base = '/flxjo-store/';
+        var path = window.location.pathname;
+        var route = path.indexOf(base) === 0 ? path.slice(base.length) : path.replace(/^\/+/, '');
+        var query = window.location.search.replace(/^\?/, '&');
+        var target = base + '?/' + route + query + window.location.hash;
+        window.location.replace(target);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

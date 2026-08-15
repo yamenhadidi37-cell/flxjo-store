@@ -46,3 +46,18 @@ CREATE POLICY "Allow anon insert to clicks" ON clicks FOR INSERT WITH CHECK (tru
 CREATE POLICY "Allow anon select from visits" ON visits FOR SELECT USING (true);
 CREATE POLICY "Allow anon select from searches" ON searches FOR SELECT USING (true);
 CREATE POLICY "Allow anon select from clicks" ON clicks FOR SELECT USING (true);
+
+-- 7. Create the 'visitors' table for durable user session tracking
+CREATE TABLE IF NOT EXISTS visitors (
+  user_id TEXT PRIMARY KEY,
+  country TEXT,
+  browser TEXT,
+  last_seen TIMESTAMPTZ DEFAULT NOW(),
+  searches JSONB DEFAULT '[]'::jsonb,
+  clicked_media JSONB DEFAULT '[]'::jsonb
+);
+
+ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow anon insert to visitors" ON visitors FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anon update to visitors" ON visitors FOR UPDATE USING (true);
+CREATE POLICY "Allow anon select from visitors" ON visitors FOR SELECT USING (true);

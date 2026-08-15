@@ -270,9 +270,10 @@ export function getBackdropUrl(path: string | null, size: 'w780' | 'original' = 
  * Fetch Popular Movies and TV Shows merged together to make an attractive trending dashboard
  */
 export async function getTrendingMedia(page = 1): Promise<MediaItem[]> {
+  const targetPage = page > 5 ? 1 : page;
   const [moviesRes, tvRes] = await Promise.all([
-    fetchFromTMDB('/movie/popular', { page: String(page) }),
-    fetchFromTMDB('/tv/popular', { page: String(page) }),
+    fetchFromTMDB('/movie/popular', { page: String(targetPage) }),
+    fetchFromTMDB('/tv/popular', { page: String(targetPage) }),
   ]);
 
   const movies: MediaItem[] = (moviesRes?.results || []).map((item: any) => ({
@@ -285,9 +286,9 @@ export async function getTrendingMedia(page = 1): Promise<MediaItem[]> {
     media_type: 'tv',
   }));
 
-  // Interleave movies and tv shows to create a diverse feed, sorted by popularity, and filter adult/explicit content
   const merged = [...movies, ...tvShows];
-  return filterAdultContent(merged).sort((a, b) => b.popularity - a.popularity);
+  const filtered = filterAdultContent(merged);
+  return filtered.length > 0 ? filtered.sort((a, b) => b.popularity - a.popularity) : [];
 }
 
 /**
@@ -489,19 +490,19 @@ export async function getTVSeasonDetails(tvId: number, seasonNumber: number): Pr
  * Special anime filter: Animation category (16) with Japanese origins or specific keyword tags
  */
 export async function getAnimeList(page = 1): Promise<MediaItem[]> {
-  // Let's discover movies and shows with genre 16 (Animation) and country of origin JP (Japan)
+  const targetPage = page > 5 ? 1 : page;
   const [moviesRes, tvRes] = await Promise.all([
     fetchFromTMDB('/discover/movie', {
       with_genres: '16',
       with_original_language: 'ja',
       sort_by: 'popularity.desc',
-      page: String(page),
+      page: String(targetPage),
     }),
     fetchFromTMDB('/discover/tv', {
       with_genres: '16',
       with_original_language: 'ja',
       sort_by: 'popularity.desc',
-      page: String(page),
+      page: String(targetPage),
     })
   ]);
 
@@ -515,7 +516,9 @@ export async function getAnimeList(page = 1): Promise<MediaItem[]> {
     media_type: 'tv',
   }));
 
-  return filterAdultContent([...animeMovies, ...animeSeries]).sort((a, b) => b.popularity - a.popularity);
+  const merged = [...animeMovies, ...animeSeries];
+  const filtered = filterAdultContent(merged);
+  return filtered.length > 0 ? filtered.sort((a, b) => b.popularity - a.popularity) : [];
 }
 
 /**

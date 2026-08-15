@@ -24,7 +24,7 @@ export default function SeoHead({
 }: SeoHeadProps) {
   useEffect(() => {
     const siteName = lang === 'en' ? 'FlxJo Cinema Platform' : 'فلكس جو | FLXJO';
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://flxjo.netlify.app';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://yamenhadidi37-cell.github.io/flxjo-store';
     const currentUrl = canonicalUrl || (typeof window !== 'undefined' ? window.location.href : baseUrl);
 
     let pageTitle = '';

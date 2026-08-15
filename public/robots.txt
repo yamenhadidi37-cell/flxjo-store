@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://flxjo.netlify.app/sitemap.xml
+Sitemap: https://yamenhadidi37-cell.github.io/flxjo-store/sitemap.xml

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTranslations } from '../translations';
+import { getApiUrl } from '../lib/api';
 import { searchMedia } from '../lib/tmdb';
 import { MediaItem } from '../types';
 
@@ -86,7 +87,7 @@ export default function SeoGenerator({ lang }: SeoGeneratorProps) {
     setGeneratedData(null);
 
     try {
-      const response = await fetch('/api/seo-generate', {
+      const response = await fetch(getApiUrl('/api/seo-generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,7 +115,7 @@ export default function SeoGenerator({ lang }: SeoGeneratorProps) {
     setIsPinging(true);
     setPingResult(null);
     try {
-      const res = await fetch('/api/seo/ping-engines', { method: 'POST' });
+      const res = await fetch(getApiUrl('/api/seo/ping-engines'), { method: 'POST' });
       const data = await res.json();
       setPingResult(data);
     } catch (err: any) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Search, Brain, Film, Tv, Sparkles, Clock, Compass, 
+  Search, Film, Tv, Sparkles, Clock, Compass, 
   Globe, Heart, Star, X, Loader2, TrendingUp, ArrowRight, CornerDownLeft 
 } from 'lucide-react';
 import { getAlgorithmState } from '../lib/algorithm';
@@ -186,7 +186,7 @@ export default function Navbar({
               { id: 'anime', path: '/anime', label: t.tabAnime, icon: Sparkles },
               { id: 'favorites', path: '/favorites', label: t.tabFavorites || (lang === 'en' ? 'Favorites' : 'المفضلة'), icon: Heart },
               { id: 'history', path: '/history', label: t.tabHistory, icon: Clock },
-              { id: 'seo', path: '/seo', label: t.tabSeo, icon: Brain },
+          
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
