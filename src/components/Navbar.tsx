@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Search, Film, Tv, Sparkles, Clock, Compass, 
-  Globe, Heart, Star, X, Loader2, TrendingUp, ArrowRight, CornerDownLeft 
+  Globe, Heart, Star, X, Loader2, TrendingUp, ArrowRight, CornerDownLeft, Sun, Moon 
 } from 'lucide-react';
 import { getAlgorithmState } from '../lib/algorithm';
 import { getTranslations } from '../translations';
@@ -19,6 +19,8 @@ interface NavbarProps {
   preferenceTrigger: number;
   lang: 'ar' | 'en';
   onLanguageChange: (lang: 'ar' | 'en') => void;
+  theme: 'dark' | 'light';
+  onThemeChange: (theme: 'dark' | 'light') => void;
 }
 
 export default function Navbar({ 
@@ -28,7 +30,9 @@ export default function Navbar({
   setActiveTab, 
   preferenceTrigger,
   lang,
-  onLanguageChange
+  onLanguageChange,
+  theme,
+  onThemeChange
 }: NavbarProps) {
   const navigate = useNavigate();
   const [searchVal, setSearchVal] = useState(searchQuery);
@@ -378,8 +382,16 @@ export default function Navbar({
           )}
         </div>
 
-        {/* Right side controls (Language switch) */}
+        {/* Right side controls (Theme + Language) */}
         <div className="flex items-center gap-2 md:gap-3">
+          <button
+            type="button"
+            aria-label={theme === 'dark' ? (lang === 'en' ? 'Switch to light mode' : 'تفعيل الوضع الفاتح') : (lang === 'en' ? 'Switch to dark mode' : 'تفعيل الوضع السينمائي')}
+            onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
+            className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 hover:border-red-600/50 rounded-2xl transition duration-300"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+          </button>
           <button
             onClick={() => onLanguageChange(lang === 'ar' ? 'en' : 'ar')}
             className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 hover:border-zinc-700 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-2xl transition duration-300 text-xs font-bold"
