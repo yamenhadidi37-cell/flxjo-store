@@ -294,6 +294,38 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
   };
 
   const [copied, setCopied] = useState(false);
+  const [personalRating, setPersonalRating] = useState<number>(0);
+  const [personalNote, setPersonalNote] = useState('');
+  const [reviewSaved, setReviewSaved] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('flxjo_personal_reviews') || '{}');
+      const review = saved[String(item.id)] || {};
+      setPersonalRating(Number(review.rating) || 0);
+      setPersonalNote(typeof review.note === 'string' ? review.note : '');
+      setReviewSaved(false);
+    } catch {
+      setPersonalRating(0);
+      setPersonalNote('');
+    }
+  }, [item.id]);
+
+  const savePersonalReview = () => {
+    try {
+      const reviews = JSON.parse(localStorage.getItem('flxjo_personal_reviews') || '{}');
+      reviews[String(item.id)] = {
+        rating: personalRating,
+        note: personalNote.trim().slice(0, 500),
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('flxjo_personal_reviews', JSON.stringify(reviews));
+      setReviewSaved(true);
+      window.setTimeout(() => setReviewSaved(false), 1800);
+    } catch {
+      setReviewSaved(false);
+    }
+  };
 
   const renderShareModal = () => {
     if (!showShareModal) return null;
@@ -614,6 +646,52 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
               
               {/* Strategic Non-intrusive Ad Zone above Story details */}
               <AdZone type="banner" lang={lang} slot="8829152634" />
+
+              {/* Private personal review: stored only in this browser */}
+              <div className="bg-zinc-900/30 border border-zinc-900/80 p-5 rounded-3xl space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-sm text-zinc-100">
+                      {lang === 'en' ? 'Your private take' : 'رأيك الشخصي'}
+                    </h3>
+                    <p className="text-[10px] text-zinc-500 mt-1">
+                      {lang === 'en' ? 'Saved on this device only — never shared.' : 'ينحفظ على جهازك فقط — وما بننبعَث لأي حدا.'}
+                    </p>
+                  </div>
+                  <Star className="w-5 h-5 text-yellow-400" />
+                </div>
+                <div className="flex items-center gap-1" dir="ltr" aria-label={lang === 'en' ? 'Your rating' : 'تقييمك'}>
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setPersonalRating(value)}
+                      className="p-1 rounded-lg hover:bg-yellow-500/10 transition-colors cursor-pointer"
+                      aria-label={`${value}/5`}
+                    >
+                      <Star className={`w-5 h-5 ${value <= personalRating ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-600'}`} />
+                    </button>
+                  ))}
+                  <span className="text-xs text-zinc-500 ml-2">{personalRating ? `${personalRating}/5` : (lang === 'en' ? 'Not rated' : 'لسه ما قيّمت')}</span>
+                </div>
+                <textarea
+                  value={personalNote}
+                  onChange={(e) => setPersonalNote(e.target.value.slice(0, 500))}
+                  placeholder={lang === 'en' ? 'Write a private note about this title…' : 'اكتب ملاحظة خاصة عن هذا العمل…'}
+                  className="w-full min-h-20 resize-y rounded-2xl bg-zinc-950/70 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-red-600/60"
+                  maxLength={500}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] text-zinc-600">{personalNote.length}/500</span>
+                  <button
+                    type="button"
+                    onClick={savePersonalReview}
+                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black transition-colors cursor-pointer"
+                  >
+                    {reviewSaved ? (lang === 'en' ? 'Saved ✓' : 'انحفظت ✓') : (lang === 'en' ? 'Save my note' : 'احفظ ملاحظتي')}
+                  </button>
+                </div>
+              </div>
 
               {/* Detailed Description Panel */}
               <div className="bg-zinc-900/30 border border-zinc-900/80 p-6 rounded-3xl space-y-4">
