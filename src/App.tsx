@@ -8,6 +8,7 @@ import SecurityGuard from './components/SecurityGuard';
 import VersionGuard from './components/VersionGuard';
 import AdZone from './components/AdZone';
 import SeoHead from './components/SeoHead';
+import DiscoveryPanel, { DiscoveryFilters } from './components/DiscoveryPanel';
 import AdminPortal from './components/AdminPortal';
 import { MediaItem, WatchHistoryItem } from './types';
 import { getTrendingMedia, searchMedia, getAnimeList, getBackdropUrl, getPosterUrl, getMediaByGenre, detectUserCountry, getTop10ByCountry, getMovieDetails, getTVShowDetails } from './lib/tmdb';
@@ -204,6 +205,12 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<DiscoveryFilters>({
+    type: 'all',
+    year: 'all',
+    minRating: 0,
+    sort: 'relevance'
+  });
 
   // Catalog states
   const [trendingMedia, setTrendingMedia] = useState<MediaItem[]>([]);
@@ -252,6 +259,20 @@ export default function App() {
     const stored = localStorage.getItem('flxjo_lang_code');
     return (stored === 'en' || stored === 'ar') ? stored : 'ar';
   });
+
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const stored = localStorage.getItem('flxjo_theme');
+    return stored === 'light' ? 'light' : 'dark';
+  });
+
+  const handleThemeChange = (nextTheme: 'dark' | 'light') => {
+    setTheme(nextTheme);
+    localStorage.setItem('flxjo_theme', nextTheme);
+  };
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   const handleLanguageChange = (newLang: 'ar' | 'en') => {
     setLang(newLang);
@@ -722,6 +743,24 @@ export default function App() {
     return rankMediaItems(raw);
   };
 
+  const filteredSearchResults = [...searchResults]
+    .filter((item) => {
+      if (searchFilters.type !== 'all' && item.media_type !== searchFilters.type) return false;
+      if (searchFilters.minRating > 0 && Number(item.vote_average || 0) < searchFilters.minRating) return false;
+      if (searchFilters.year !== 'all') {
+        const rawYear = item.release_date || item.first_air_date || '';
+        const year = Number(rawYear.slice(0, 4));
+        if (searchFilters.year === '2010' ? year < 2010 : year !== Number(searchFilters.year)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (searchFilters.sort === 'rating') return (b.vote_average || 0) - (a.vote_average || 0);
+      if (searchFilters.sort === 'latest') return Number((b.release_date || b.first_air_date || '0').slice(0, 10).replaceAll('-', '')) - Number((a.release_date || a.first_air_date || '0').slice(0, 10).replaceAll('-', ''));
+      if (searchFilters.sort === 'popularity') return (b.popularity || 0) - (a.popularity || 0);
+      return 0;
+    });
+
   const getTranslatedCountryName = () => {
     if (!userCountry) return '';
     if (lang === 'en') {
@@ -759,7 +798,7 @@ export default function App() {
   return (
     <SecurityGuard lang={lang}>
       <VersionGuard lang={lang}>
-        <div className="min-h-screen bg-zinc-950 text-white selection:bg-red-600 selection:text-white" dir={lang === 'en' ? 'ltr' : 'rtl'}>
+        <div className={`min-h-screen text-white selection:bg-red-600 selection:text-white transition-colors duration-300 ${theme === 'light' ? 'flxjo-light' : 'bg-zinc-950'}`} dir={lang === 'en' ? 'ltr' : 'rtl'}>
       
       {/* Global Savage Alert Banner */}
       {globalAlert && (
@@ -785,6 +824,8 @@ export default function App() {
         preferenceTrigger={preferenceTrigger}
         lang={lang}
         onLanguageChange={handleLanguageChange}
+        theme={theme}
+        onThemeChange={handleThemeChange}
       />
 
       {/* Main Page Body */}
@@ -841,6 +882,13 @@ export default function App() {
               {/* Strategic AdSense banner spot on Search Page */}
               <AdZone type="banner" lang={lang} slot="3829152633" className="mb-4" />
 
+              <DiscoveryPanel
+                filters={searchFilters}
+                onChange={setSearchFilters}
+                lang={lang}
+                resultCount={filteredSearchResults.length}
+              />
+
               <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
                 <div className={lang === 'en' ? 'text-left' : 'text-right'}>
                   <h2 className="text-xl md:text-2xl font-black">
@@ -851,7 +899,7 @@ export default function App() {
                   </p>
                 </div>
                 <span className="text-xs bg-zinc-900 text-zinc-400 border border-zinc-800 px-3 py-1.5 rounded-xl font-mono">
-                  {lang === 'en' ? `${searchResults.length} matching titles` : `${searchResults.length} عنوان متطابق`}
+                  {lang === 'en' ? `${filteredSearchResults.length} matching titles` : `${filteredSearchResults.length} عنوان متطابق`}
                 </span>
               </div>
 
@@ -860,7 +908,7 @@ export default function App() {
                   <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
                   <p className="text-xs text-zinc-500">{lang === 'en' ? 'Searching global database...' : 'جاري البحث في قاعدة البيانات العالمية...'}</p>
                 </div>
-              ) : searchResults.length === 0 ? (
+              ) : filteredSearchResults.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-center gap-2 text-zinc-500 max-w-sm mx-auto">
                   <HelpCircle className="w-12 h-12 text-zinc-600" />
                   <h3 className="font-bold text-sm text-zinc-400">{lang === 'en' ? 'No search results available' : 'لا تتوفر نتائج بحث'}</h3>
@@ -875,7 +923,7 @@ export default function App() {
                   layout
                   className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8"
                 >
-                  {searchResults.map((item) => (
+                  {filteredSearchResults.map((item) => (
                     <MovieCard
                       key={item.id}
                       item={item}
@@ -1143,6 +1191,26 @@ export default function App() {
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Personalized shelf: deterministic ranking from favorites, history and likes */}
+                {trendingMedia.length > 0 && (
+                  <div className="max-w-none px-4 md:px-12 lg:px-16 space-y-4">
+                    <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 ${lang === 'en' ? 'text-left' : 'text-right'}`}>
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 bg-red-600/10 text-red-500 rounded-lg"><Sparkles className="w-5 h-5 text-red-500" /></div>
+                        <h2 className="text-lg md:text-xl font-black">{lang === 'en' ? 'Picked for You ✨' : 'مختارات إلك ✨'}</h2>
+                      </div>
+                      <p className="text-[11px] text-zinc-400">{lang === 'en' ? 'Fresh picks shaped by your favorites and viewing habits.' : 'اقتراحات جديدة مبنية على مفضلاتك وطريقة مشاهدتك.'}</p>
+                    </div>
+                    <div className="flex gap-6 overflow-x-auto pb-6 pt-1 px-1 scroll-smooth no-scrollbar">
+                      {rankMediaItems(trendingMedia).slice(0, 12).map((item) => (
+                        <div key={`for-you-${item.media_type}-${item.id}`} className="flex-none w-[160px] sm:w-[190px]">
+                          <MovieCard item={item} onWatch={handleWatchMedia} onPreferenceChange={handlePreferenceChange} lang={lang} />
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
