@@ -63,3 +63,61 @@ body {
 }
 
 
+
+
+/* Premium light theme: keeps the FLXJO red accent while improving readability. */
+.flxjo-light {
+  background: #f7f7f8;
+  color: #18181b;
+}
+
+.flxjo-light header,
+.flxjo-light .bg-zinc-950,
+.flxjo-light .bg-zinc-950\/95,
+.flxjo-light .bg-zinc-950\/80 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #e4e4e7 !important;
+}
+
+.flxjo-light .text-white { color: #18181b !important; }
+.flxjo-light .text-zinc-200,
+.flxjo-light .text-zinc-300,
+.flxjo-light .text-zinc-400 { color: #52525b !important; }
+.flxjo-light .text-zinc-500,
+.flxjo-light .text-zinc-600 { color: #71717a !important; }
+.flxjo-light .bg-zinc-900,
+.flxjo-light .bg-zinc-900\/90,
+.flxjo-light .bg-zinc-900\/80 { background-color: #ffffff !important; }
+.flxjo-light .border-zinc-800,
+.flxjo-light .border-zinc-900,
+.flxjo-light .border-zinc-800\/90 { border-color: #e4e4e7 !important; }
+.flxjo-light .hover\:bg-zinc-900\/60:hover,
+.flxjo-light .hover\:bg-zinc-900\/80:hover,
+.flxjo-light .hover\:bg-zinc-800:hover { background-color: #f4f4f5 !important; }
+.flxjo-light .shadow-\[0_-10px_30px_rgba\(0\,0\,0\,0\.9\)\] { box-shadow: 0 -10px 30px rgba(24, 24, 27, 0.12) !important; }
+
+html { scroll-behavior: smooth; }
+body { min-width: 320px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}
+
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+.flxjo-surface {
+  background: linear-gradient(145deg, rgba(24,24,27,.75), rgba(9,9,11,.92));
+  border: 1px solid rgba(63,63,70,.7);
+  box-shadow: 0 16px 40px rgba(0,0,0,.18);
+}
+.flxjo-light .flxjo-surface {
+  background: linear-gradient(145deg, #ffffff, #f4f4f5);
+  border-color: #e4e4e7;
+  box-shadow: 0 16px 40px rgba(24,24,27,.08);
+}
+
+.flxjo-focus-ring:focus-visible { outline: 2px solid #ef4444; outline-offset: 3px; }
+
+@keyframes flxjo-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.flxjo-skeleton { background: linear-gradient(90deg, #18181b 25%, #27272a 37%, #18181b 63%); background-size: 400% 100%; animation: flxjo-shimmer 1.4s ease infinite; }
+.flxjo-light .flxjo-skeleton { background: linear-gradient(90deg, #e4e4e7 25%, #f4f4f5 37%, #e4e4e7 63%); background-size: 400% 100%; }

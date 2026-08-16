@@ -167,7 +167,7 @@ export function getOrCreateUserId(): string {
       activeProfile = {
         id: 'user-' + Math.random().toString(36).substring(2, 11),
         username: 'Cinephile' + Math.floor(100 + Math.random() * 900),
-        email: 'hadidiyamen2@gmail.com',
+        email: 'guest@flxjo.local',
         countryCode: 'JO',
         countryName: 'Jordan',
         isActive: true,
