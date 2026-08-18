@@ -37,8 +37,8 @@ export default function CookieConsent({ lang, open = false, onChange }: CookieCo
       </h2>
       <p className="mt-2 text-xs leading-6 text-zinc-300">
         {lang === 'ar'
-          ? 'نستخدم ملفات اختيارية لحفظ البحث وتخصيص الاقتراحات. عند الموافقة، قد نرسل سجل البحث المرتبط بمعرّف تقني عشوائي إلى لوحة الإدارة للتحليلات. ما بنستخدم الكاميرا ولا بنجمع صور أو كلمات سر، وتقدر ترفض ويظل الموقع شغال بدون هذا التتبع.'
-          : 'We use optional storage to remember searches and personalize recommendations. If you accept, search activity linked to a random technical ID may be sent to the admin dashboard for analytics. We never use the camera or collect photos or passwords, and you can decline while using the site normally.'}
+          ? 'نستخدم ملفات اختيارية لحفظ عمليات البحث داخل FlxJo وتخصيص الاقتراحات. بعد موافقتك فقط، بنسجل البحث داخل الموقع ومصدر الدخول مثل Google إذا كان المتصفح أرسله، وبنظهره في لوحة الإدارة المرتبط بمعرّف تقني عشوائي. ما بنقرأ سجل المتصفح العام، وكثير من محركات البحث لا ترسل كلمة Google نفسها. ما بنستخدم الكاميرا ولا بنجمع صور أو كلمات سر، وتقدر ترفض ويظل الموقع شغال طبيعي.'
+          : 'We use optional storage to remember searches inside FlxJo and personalize recommendations. Only after you accept, we record on-site searches and the entry source, such as Google when the browser provides it, in the admin dashboard under a random technical ID. We do not read your general browser history, and search engines often hide the exact Google keyword. We never use the camera or collect photos or passwords, and you can decline while using the site normally.'}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <button

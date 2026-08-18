@@ -51,6 +51,46 @@ function getBrowserInfo(): string {
   return M.join(' ');
 }
 
+/**
+ * Reads only coarse acquisition information after consent. Search engines often
+ * remove the exact keyword from document.referrer, so googleQuery is optional.
+ */
+function getAcquisitionContext() {
+  const referrer = document.referrer || '';
+  let referrerHost = '';
+  let source = 'direct';
+  let googleQuery = '';
+
+  try {
+    const url = referrer ? new URL(referrer) : null;
+    referrerHost = url?.hostname || '';
+    const host = referrerHost.toLowerCase();
+    if (host.includes('google.')) {
+      source = 'google';
+      googleQuery = url?.searchParams.get('q') || url?.searchParams.get('query') || '';
+    } else if (host.includes('bing.com')) {
+      source = 'bing';
+    } else if (host.includes('yahoo.')) {
+      source = 'yahoo';
+    } else if (host.includes('youtube.com') || host.includes('youtu.be')) {
+      source = 'youtube';
+    } else if (host.includes('facebook.com') || host.includes('instagram.com')) {
+      source = 'social';
+    } else if (referrer) {
+      source = 'referral';
+    }
+  } catch {
+    source = referrer ? 'referral' : 'direct';
+  }
+
+  return {
+    source,
+    referrerHost,
+    googleQuery,
+    landingPage: `${window.location.pathname}${window.location.search}`
+  };
+}
+
 function WatchPage({ onPreferenceChange, lang }: { onPreferenceChange: () => void; lang: 'ar' | 'en' }) {
   const params = useParams<{ mediaType?: string; slug?: string; id?: string }>();
   const location = useLocation();
@@ -301,7 +341,7 @@ export default function App() {
     const existingUid = localStorage.getItem('flexjo_user_id') || '';
     const uid = nextConsent === 'accepted' ? getOrCreateUserId() : existingUid;
     try {
-      await fetch(getApiUrl('/api/user-consent'), {
+          await fetch(getApiUrl('/api/user-consent'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -310,7 +350,8 @@ export default function App() {
           consentVersion: COOKIE_POLICY_VERSION,
           consentAt: new Date().toISOString(),
           country: localStorage.getItem('user_country_code') || 'JO',
-          browser: getBrowserInfo()
+          browser: getBrowserInfo(),
+          ...(nextConsent === 'accepted' ? getAcquisitionContext() : {})
         })
       });
     } catch (e) {
@@ -516,19 +557,24 @@ export default function App() {
           localStorage.setItem('user_country_code', country.code);
         }
         
-        // Log visit in backend
-        try {
-          fetch(getApiUrl('/api/log-visit'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              country: country?.code || 'JO',
-              userId: getOrCreateUserId(),
-              browser: getBrowserInfo()
-            })
-          });
-        } catch (e) {
-          // fail silently
+        // Log a visit only after explicit consent; the heartbeat handles later activity.
+        if (getCookieConsent() === 'accepted') {
+          try {
+            fetch(getApiUrl('/api/log-visit'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                country: country?.code || 'JO',
+                userId: getOrCreateUserId(),
+                browser: getBrowserInfo(),
+                consentStatus: 'accepted',
+                consentVersion: COOKIE_POLICY_VERSION,
+                ...getAcquisitionContext()
+              })
+            });
+          } catch (e) {
+            // fail silently
+          }
         }
 
         const top10 = await getTop10ByCountry(country.code);
@@ -666,7 +712,9 @@ export default function App() {
             country: userCountry?.code || localStorage.getItem('user_country_code') || 'JO',
             userId: getOrCreateUserId(),
             consentStatus: 'accepted',
-            consentVersion: COOKIE_POLICY_VERSION
+            consentVersion: COOKIE_POLICY_VERSION,
+            ...getAcquisitionContext(),
+            searchType: isSmart ? 'smart' : 'catalog'
           })
         });
       } catch (e) {

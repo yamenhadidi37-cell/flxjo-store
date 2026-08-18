@@ -34,6 +34,10 @@ async function startServer() {
     country: string;
     userAgent: string;
     timestamp: string;
+    source?: string;
+    referrerHost?: string;
+    googleQuery?: string;
+    landingPage?: string;
   }
 
   interface SearchLog {
@@ -41,6 +45,11 @@ async function startServer() {
     lang: string;
     country: string;
     timestamp: string;
+    source?: string;
+    referrerHost?: string;
+    googleQuery?: string;
+    landingPage?: string;
+    searchType?: string;
   }
 
   interface ClickLog {
@@ -94,6 +103,17 @@ async function startServer() {
     return body?.consentStatus === 'accepted' && body?.consentVersion === ANALYTICS_CONSENT_VERSION;
   }
 
+  function getAcquisitionFields(body: any) {
+    const allowedSources = new Set(['direct', 'google', 'bing', 'yahoo', 'youtube', 'social', 'referral']);
+    const source = allowedSources.has(String(body?.source)) ? String(body.source) : 'direct';
+    const referrerHost = typeof body?.referrerHost === 'string' ? body.referrerHost.slice(0, 200) : '';
+    const googleQuery = source === 'google' && typeof body?.googleQuery === 'string'
+      ? body.googleQuery.trim().slice(0, 200)
+      : '';
+    const landingPage = typeof body?.landingPage === 'string' ? body.landingPage.slice(0, 500) : '';
+    return { source, referrerHost, googleQuery, landingPage };
+  }
+
   function ensureUsersDir() {
     if (!fs.existsSync(USERS_DIR)) {
       fs.mkdirSync(USERS_DIR, { recursive: true });
@@ -108,7 +128,16 @@ async function startServer() {
     country: string;
     browser: string;
     visits: string[];
-    searches: { query: string; timestamp: string; lang: string }[];
+    searches: {
+      query: string;
+      timestamp: string;
+      lang: string;
+      source?: string;
+      referrerHost?: string;
+      googleQuery?: string;
+      landingPage?: string;
+      searchType?: string;
+    }[];
     clicks: { id: string; title: string; type: string; timestamp: string }[];
     exits?: string[];
     currentMovie?: string;
@@ -116,6 +145,10 @@ async function startServer() {
     consentStatus?: 'accepted' | 'declined';
     consentAt?: string;
     consentVersion?: string;
+    acquisitionSource?: string;
+    referrerHost?: string;
+    googleQuery?: string;
+    landingPage?: string;
   }
 
   function getUserProfile(userId: string, defaultIp = '', defaultCountry = 'Unknown', defaultBrowser = 'Unknown'): UserProfile {
@@ -1028,6 +1061,7 @@ async function startServer() {
   app.post('/api/log-visit', (req, res) => {
     if (!hasValidAnalyticsConsent(req.body)) return res.json({ success: true, tracked: false });
     const { country, userId, browser, consentVersion } = req.body;
+    const acquisition = getAcquisitionFields(req.body);
     const ip = (req.headers['x-forwarded-for'] as string || '').split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
     const userAgent = req.headers['user-agent'] || 'Unknown';
     const actualBrowser = browser || userAgent;
@@ -1038,7 +1072,8 @@ async function startServer() {
       ip,
       country: country || 'Unknown',
       userAgent,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      ...acquisition
     };
     db.visits.push(visitEntry);
     if (db.visits.length > 5000) db.visits.shift();
@@ -1057,10 +1092,14 @@ async function startServer() {
       }
       profile.consentStatus = 'accepted';
       profile.consentVersion = consentVersion;
+      profile.acquisitionSource = acquisition.source;
+      profile.referrerHost = acquisition.referrerHost;
+      profile.googleQuery = acquisition.googleQuery;
+      profile.landingPage = acquisition.landingPage;
       saveUserProfile(userId, profile);
     }
 
-    // Save to Supabase (non-blocking)
+    // Keep the existing Supabase schema stable; source fields remain in the local consented profile.
     logToSupabase('visits', {
       ip,
       country: country || 'Unknown',
@@ -1075,14 +1114,18 @@ async function startServer() {
     if (!hasValidAnalyticsConsent(req.body)) return res.json({ success: true, tracked: false });
     const { query, lang, country, userId, consentVersion } = req.body;
     if (!query) return res.status(400).json({ error: 'Query is required' });
+    const acquisition = getAcquisitionFields(req.body);
+    const searchType = typeof req.body?.searchType === 'string' ? req.body.searchType.slice(0, 30) : 'catalog';
 
-    // Save to local JSON database
+    // Save to local JSON database only after explicit consent
     const db = getLogs();
     const searchEntry = {
-      query,
+      query: String(query).slice(0, 200),
       lang: lang || 'ar',
       country: country || 'Unknown',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      ...acquisition,
+      searchType
     };
     db.searches.push(searchEntry);
     if (db.searches.length > 5000) db.searches.shift();
@@ -1095,12 +1138,20 @@ async function startServer() {
       profile.lastSeen = searchEntry.timestamp;
       if (!profile.searches) profile.searches = [];
       profile.searches.push({
-        query,
-        lang: lang || 'ar',
-        timestamp: searchEntry.timestamp
+        query: searchEntry.query,
+        lang: searchEntry.lang,
+        timestamp: searchEntry.timestamp,
+        ...acquisition,
+        searchType
       });
       profile.consentStatus = 'accepted';
       profile.consentVersion = consentVersion;
+      if (!profile.acquisitionSource || acquisition.source !== 'direct') {
+        profile.acquisitionSource = acquisition.source;
+        profile.referrerHost = acquisition.referrerHost;
+        profile.googleQuery = acquisition.googleQuery;
+        profile.landingPage = acquisition.landingPage;
+      }
       saveUserProfile(userId, profile);
     }
 
@@ -1202,6 +1253,7 @@ async function startServer() {
   // Explicit cookie/analytics consent. Declined users are not retained in the admin profile store.
   app.post('/api/user-consent', (req, res) => {
     const { userId, consentStatus, consentVersion, consentAt, country, browser } = req.body || {};
+    const acquisition = getAcquisitionFields(req.body || {});
     const safeId = String(userId || '').replace(/[^a-zA-Z0-9_\-]/g, '');
 
     if (consentStatus === 'declined') {
@@ -1228,6 +1280,10 @@ async function startServer() {
     profile.ip = ip;
     if (country) profile.country = country;
     if (browser) profile.browser = browser;
+    profile.acquisitionSource = acquisition.source;
+    profile.referrerHost = acquisition.referrerHost;
+    profile.googleQuery = acquisition.googleQuery;
+    profile.landingPage = acquisition.landingPage;
     saveUserProfile(safeId, profile);
     return res.json({ success: true, tracked: true, userId: safeId });
   });
@@ -1294,7 +1350,12 @@ async function startServer() {
           query: s.query,
           lang: s.lang || 'ar',
           country: s.country || 'Unknown',
-          timestamp: s.timestamp
+          timestamp: s.timestamp,
+          source: s.source || 'site_search',
+          referrerHost: s.referrer_host || s.referrerHost || '',
+          googleQuery: s.google_query || s.googleQuery || '',
+          landingPage: s.landing_page || s.landingPage || '',
+          searchType: s.search_type || s.searchType || 'catalog'
         }));
 
         recentClicks = clicks.map((c: any) => ({
@@ -1318,7 +1379,10 @@ async function startServer() {
         const c = v.country || 'Unknown';
         countryBreakdown[c] = (countryBreakdown[c] || 0) + 1;
       });
-      recentSearches = db.searches.slice(-200).reverse();
+        recentSearches = db.searches.slice(-200).reverse().map((s: any) => ({
+          ...s,
+          source: s.source || 'site_search'
+        }));
       recentClicks = db.clicks.slice(-200).reverse();
     }
 
@@ -1334,6 +1398,10 @@ async function startServer() {
         return {
           ip_address: u.ip || '127.0.0.1',
           country: u.country || 'Unknown',
+          source: u.acquisitionSource || 'direct',
+          referrer_host: u.referrerHost || '',
+          google_query: u.googleQuery || '',
+          landing_page: u.landingPage || '',
           current_movie: u.currentMovie || (u.clicks && u.clicks.length > 0 ? u.clicks[u.clicks.length - 1].title : 'تصفح الصفحة الرئيسية'),
           status: isOnline ? 'online' : 'offline',
           login_time: new Date(u.firstSeen || Date.now()).toLocaleTimeString(),

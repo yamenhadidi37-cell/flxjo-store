@@ -397,10 +397,18 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
                                 {new Date(search.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
-                            <div className="flex justify-between items-center text-[10px] text-zinc-500">
+                            <div className="flex flex-wrap justify-between items-center gap-2 text-[10px] text-zinc-500">
                               <span>{lang === 'en' ? 'Lang:' : 'لغة:'} <span className="uppercase font-mono font-bold">{search.lang}</span></span>
                               <span>{lang === 'en' ? 'Country:' : 'بلد:'} <span className="font-mono font-bold text-zinc-400">{search.country}</span></span>
+                              <span className={`rounded-md px-1.5 py-0.5 font-bold ${search.source === 'google' ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20' : 'bg-zinc-900 text-zinc-400'}`}>
+                                {search.source === 'google' ? 'Google' : (search.source || (lang === 'en' ? 'Site search' : 'بحث الموقع'))}
+                              </span>
                             </div>
+                            {search.source === 'google' && search.googleQuery && (
+                              <div className="rounded-lg border border-blue-500/15 bg-blue-500/5 px-2 py-1 text-[10px] text-blue-200">
+                                {lang === 'en' ? 'Google keyword:' : 'كلمة بحث Google:'} <span className="font-bold select-all">{search.googleQuery}</span>
+                              </div>
+                            )}
                           </div>
                         ))
                       ) : (
@@ -515,6 +523,13 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
                             <div className="text-green-400">
                               {lang === 'en' ? 'Consent recorded:' : 'وقت الموافقة:'} <span className="text-zinc-300">{u.consentAt ? new Date(u.consentAt).toLocaleString() : '—'}</span>
                             </div>
+                            <div className="sm:col-span-2 rounded-xl border border-blue-500/15 bg-blue-500/5 px-3 py-2 text-blue-200">
+                              <span className="font-bold">{lang === 'en' ? 'Entry source:' : 'مصدر الدخول:'}</span>{' '}
+                              <span className="font-black">{u.acquisitionSource === 'google' ? 'Google' : (u.acquisitionSource || (lang === 'en' ? 'Direct' : 'دخول مباشر'))}</span>
+                              {u.referrerHost && <span className="text-blue-300/70"> · {u.referrerHost}</span>}
+                              {u.googleQuery && <span className="block mt-1"><span className="font-bold">{lang === 'en' ? 'Google keyword:' : 'كلمة بحث Google:'}</span> {u.googleQuery}</span>}
+                              {u.landingPage && <span className="block mt-1 break-all text-[10px] text-blue-300/70"><span className="font-bold">{lang === 'en' ? 'Landing page:' : 'صفحة الدخول:'}</span> {u.landingPage}</span>}
+                            </div>
                           </div>
 
                           {/* Expanded Details section */}
@@ -537,9 +552,13 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
                                 <div className="bg-zinc-950/40 rounded-xl p-3 border border-zinc-900 max-h-[160px] overflow-y-auto space-y-1.5 pr-1">
                                   {u.searches && u.searches.length > 0 ? (
                                     u.searches.map((s: any, sIdx: number) => (
-                                      <div key={sIdx} className="flex justify-between items-center text-[11px] py-1 border-b border-zinc-900/30 last:border-0">
-                                        <span className="text-red-500 font-bold bg-red-600/5 px-2 py-0.5 rounded-md border border-red-500/10">{s.query}</span>
-                                        <span className="text-[9px] text-zinc-500 font-mono">{new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                      <div key={sIdx} className="flex justify-between items-center gap-2 text-[11px] py-1.5 border-b border-zinc-900/30 last:border-0">
+                                        <div className="min-w-0">
+                                          <span className="text-red-500 font-bold bg-red-600/5 px-2 py-0.5 rounded-md border border-red-500/10 inline-block max-w-full truncate">{s.query}</span>
+                                          {s.source === 'google' && <span className="mr-1.5 rounded bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-bold text-blue-300">Google</span>}
+                                          {s.googleQuery && <span className="block mt-1 text-[9px] text-blue-300/80 truncate">{lang === 'en' ? 'Google:' : 'Google:'} {s.googleQuery}</span>}
+                                        </div>
+                                        <span className="shrink-0 text-[9px] text-zinc-500 font-mono">{new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                       </div>
                                     ))
                                   ) : (
