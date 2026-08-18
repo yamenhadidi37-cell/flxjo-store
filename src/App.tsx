@@ -7,11 +7,12 @@ import WatchModal from './components/WatchModal';
 import SecurityGuard from './components/SecurityGuard';
 import VersionGuard from './components/VersionGuard';
 import AdZone from './components/AdZone';
+import CookieConsent from './components/CookieConsent';
 import SeoHead from './components/SeoHead';
 import DiscoveryPanel, { DiscoveryFilters } from './components/DiscoveryPanel';
 import AdminPortal from './components/AdminPortal';
 import { MediaItem, WatchHistoryItem } from './types';
-import { getTrendingMedia, searchMedia, getAnimeList, getBackdropUrl, getPosterUrl, getMediaByGenre, detectUserCountry, getTop10ByCountry, getMovieDetails, getTVShowDetails } from './lib/tmdb';
+import { getTrendingMedia, searchMedia, getAnimeList, getYangoPlayMedia, getBackdropUrl, getPosterUrl, getMediaByGenre, detectUserCountry, getTop10ByCountry, getMovieDetails, getTVShowDetails } from './lib/tmdb';
 import { rankMediaItems, getWatchHistory, clearWatchHistory, getFavoriteItems } from './lib/algorithm';
 import { 
   Play, Sparkles, AlertCircle, Star, Flame, Film, Tv, Clock, 
@@ -22,6 +23,7 @@ import { getTranslations } from './translations';
 import { slugify } from './lib/slugify';
 import { fetchWithTimeout, getApiUrl } from './lib/api';
 import { getDaily50 } from './lib/dailySeededSelection';
+import { recordSearchQueryInCookie, getUserCookiePreferences, getCookieConsent, clearUserTrackingData, COOKIE_POLICY_VERSION } from './lib/cookieManager';
 
 function getOrCreateUserId(): string {
   let uid = localStorage.getItem('flexjo_user_id');
@@ -83,22 +85,26 @@ function WatchPage({ onPreferenceChange, lang }: { onPreferenceChange: () => voi
         if (data) {
           setItem(data);
           
-          // Log media view
-          try {
-            const countryCode = localStorage.getItem('user_country_code') || 'JO';
-            fetch(getApiUrl('/api/log-media'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: data.id,
-                title: data.title || data.name,
-                type: resolvedMediaType,
-                country: countryCode,
-                userId: getOrCreateUserId()
-              })
-            });
-          } catch (e) {
-            // ignore
+          // Log media view only after explicit analytics consent.
+          if (getCookieConsent() === 'accepted') {
+            try {
+              const countryCode = localStorage.getItem('user_country_code') || 'JO';
+              fetch(getApiUrl('/api/log-media'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: data.id,
+                  title: data.title || data.name,
+                  type: resolvedMediaType,
+                  country: countryCode,
+                  userId: getOrCreateUserId(),
+                  consentStatus: 'accepted',
+                  consentVersion: COOKIE_POLICY_VERSION
+                })
+              });
+            } catch (e) {
+              // ignore
+            }
           }
         }
       } catch (error) {
@@ -215,6 +221,7 @@ export default function App() {
   // Catalog states
   const [trendingMedia, setTrendingMedia] = useState<MediaItem[]>([]);
   const [animeMedia, setAnimeMedia] = useState<MediaItem[]>([]);
+  const [yangoMedia, setYangoMedia] = useState<MediaItem[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
 
   // Regional Top 10 states
@@ -287,8 +294,36 @@ export default function App() {
       : 'FlxJo | Watch Movies, Series & Anime Online';
   }, [lang]);
 
+  const [consentState, setConsentState] = useState(getCookieConsent());
+  const [showCookieSettings, setShowCookieSettings] = useState(false);
+
+  const syncConsentWithServer = async (nextConsent: 'accepted' | 'declined') => {
+    const existingUid = localStorage.getItem('flexjo_user_id') || '';
+    const uid = nextConsent === 'accepted' ? getOrCreateUserId() : existingUid;
+    try {
+      await fetch(getApiUrl('/api/user-consent'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: uid,
+          consentStatus: nextConsent,
+          consentVersion: COOKIE_POLICY_VERSION,
+          consentAt: new Date().toISOString(),
+          country: localStorage.getItem('user_country_code') || 'JO',
+          browser: getBrowserInfo()
+        })
+      });
+    } catch (e) {
+      // Consent remains local if the analytics endpoint is unavailable.
+    }
+    if (nextConsent === 'declined') {
+      clearUserTrackingData();
+    }
+  };
+
   // Background live tracking & Supabase visitors heartbeat loop
   useEffect(() => {
+    if (consentState !== 'accepted') return;
     const uid = getOrCreateUserId();
     const browser = getBrowserInfo();
     const countryCode = localStorage.getItem('user_country_code') || 'JO';
@@ -327,6 +362,8 @@ export default function App() {
           userId: uid,
           country: countryCode,
           current_movie: movieName,
+          consentStatus: 'accepted',
+          consentVersion: COOKIE_POLICY_VERSION,
           status: userStatus,
           login_time: loginTime,
           last_seen: new Date().toISOString()
@@ -338,7 +375,7 @@ export default function App() {
         fetch(getApiUrl('/api/user-heartbeat'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: uid, country: countryCode, browser })
+          body: JSON.stringify({ userId: uid, country: countryCode, browser, consentStatus: 'accepted', consentVersion: COOKIE_POLICY_VERSION })
         }).catch(() => {});
       }
     };
@@ -355,7 +392,7 @@ export default function App() {
       fetch(getApiUrl('/api/log-exit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid }),
+        body: JSON.stringify({ userId: uid, consentStatus: 'accepted', consentVersion: COOKIE_POLICY_VERSION }),
         keepalive: true
       }).catch(() => {});
     };
@@ -366,9 +403,15 @@ export default function App() {
       clearInterval(interval);
       window.removeEventListener('beforeunload', handleUnload);
     };
-  }, [location.pathname]);
+  }, [location.pathname, consentState]);
 
   const t = getTranslations(lang);
+
+  const handleCookieConsentChange = (nextConsent: 'accepted' | 'declined') => {
+    setConsentState(nextConsent);
+    setShowCookieSettings(false);
+    void syncConsentWithServer(nextConsent);
+  };
 
   // Simple static genre shelves (No personal profiling / No studying user tastes)
   interface GenreShelf {
@@ -414,13 +457,15 @@ export default function App() {
       setLoadingCatalog(true);
       setLoadingTop10(true);
       try {
-        const [t1, a1] = await Promise.all([
+        const [t1, a1, y1] = await Promise.all([
           getTrendingMedia(1),
           getAnimeList(1),
+          getYangoPlayMedia(),
         ]);
         
         const trendingPool = [...(t1 || [])];
         const animePool = [...(a1 || [])];
+        const yangoPool = [...(y1 || [])];
 
         // Fetch Pinned Movie from backend
         let pinned: MediaItem | null = null;
@@ -443,9 +488,11 @@ export default function App() {
         // Select exactly 50 seeded by daily UTC time
         const trendingDaily = getDaily50(trendingPool, 'trending_hits');
         const animeDaily = getDaily50(animePool, 'japanese_anime_legendary');
+        const yangoDaily = getDaily50(yangoPool, 'yango_play_streaming');
         
         setTrendingMedia(trendingDaily);
         setAnimeMedia(animeDaily);
+        setYangoMedia(yangoDaily);
 
         if (trendingDaily.length > 0) {
           let subset = trendingDaily.filter(m => m.backdrop_path && m.poster_path).slice(0, 6);
@@ -604,20 +651,27 @@ export default function App() {
       return;
     }
 
-    // Log search query in backend
-    try {
-      fetch(getApiUrl('/api/log-search'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query,
-          lang,
-          country: userCountry?.code || localStorage.getItem('user_country_code') || 'JO',
-          userId: getOrCreateUserId()
-        })
-      });
-    } catch (e) {
-      // fail silently
+    // Record search in cookie / local profile
+    recordSearchQueryInCookie(query);
+
+    // Send user-level search analytics only after explicit cookie consent.
+    if (getCookieConsent() === 'accepted') {
+      try {
+        fetch(getApiUrl('/api/log-search'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query,
+            lang,
+            country: userCountry?.code || localStorage.getItem('user_country_code') || 'JO',
+            userId: getOrCreateUserId(),
+            consentStatus: 'accepted',
+            consentVersion: COOKIE_POLICY_VERSION
+          })
+        });
+      } catch (e) {
+        // fail silently
+      }
     }
 
     setLoadingSearch(true);
@@ -799,6 +853,7 @@ export default function App() {
     <SecurityGuard lang={lang}>
       <VersionGuard lang={lang}>
         <div className={`min-h-screen text-white selection:bg-red-600 selection:text-white transition-colors duration-300 ${theme === 'light' ? 'flxjo-light' : 'bg-zinc-950'}`} dir={lang === 'en' ? 'ltr' : 'rtl'}>
+        <CookieConsent lang={lang} open={showCookieSettings} onChange={handleCookieConsentChange} />
       
       {/* Global Savage Alert Banner */}
       {globalAlert && (
@@ -1243,6 +1298,46 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Row: Yango Play Exclusive & Verified Working Hits */}
+                {yangoMedia.length > 0 && (
+                  <div className="max-w-none px-4 md:px-12 lg:px-16 space-y-4">
+                    <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 ${lang === 'en' ? 'text-left' : 'text-right'}`}>
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 bg-red-600/10 text-red-500 rounded-lg">
+                          <Tv className="w-5 h-5 text-red-500 animate-pulse" />
+                        </div>
+                        <h2 className="text-lg md:text-xl font-black">{lang === 'en' ? 'Currently on Yango Play 🎬' : 'الموجود حالياً على Yango Play 🎬'}</h2>
+                      </div>
+                      <div className="flex flex-col sm:items-end gap-1">
+                        <p className="text-[11px] text-zinc-400">
+                          {lang === 'en' ? 'Titles listed in Yango Play’s official public catalog. Availability can vary by country and subscription.' : 'أعمال ظاهرة في الكتالوج الرسمي العام ليانغو بلي؛ التوفر والتشغيل ممكن يختلف حسب البلد والاشتراك.'}
+                        </p>
+                        <a
+                          href="https://play.yango.com/en/movies/selection/2507"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] font-bold text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          {lang === 'en' ? 'Open official Yango catalog ↗' : 'فتح كتالوج يانغو الرسمي ↗'}
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-6 overflow-x-auto pb-6 pt-1 px-1 scroll-smooth no-scrollbar">
+                      {yangoMedia.map((item) => (
+                        <div key={`yango-${item.id}`} className="flex-none w-[160px] sm:w-[190px]">
+                          <MovieCard
+                            item={item}
+                            onWatch={handleWatchMedia}
+                            onPreferenceChange={handlePreferenceChange}
+                            lang={lang}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Row 3: Regional Top 10 (Dynamic IP and Region detection) */}
                 {userCountry && top10Media.length > 0 && (
                   <div className="max-w-none px-4 md:px-12 lg:px-16 space-y-6 bg-gradient-to-b from-zinc-950 via-zinc-950/40 to-transparent py-6 border-y border-zinc-900/40">
@@ -1665,6 +1760,14 @@ export default function App() {
               <span>⚙️</span>
               <span>{lang === 'en' ? 'Admin Portal' : 'بوابة الإدارة (Admin)'}</span>
             </Link>
+            <span className="text-zinc-700">•</span>
+            <button
+              onClick={() => setShowCookieSettings(true)}
+              className="hover:text-red-400 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <span>🍪</span>
+              <span>{lang === 'en' ? 'Cookie settings' : 'إعدادات الكوكيز'}</span>
+            </button>
           </div>
           <p className="text-[10px] text-zinc-600">
             {lang === 'en' 

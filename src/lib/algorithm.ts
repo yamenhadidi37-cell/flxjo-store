@@ -1,5 +1,6 @@
 import { MediaItem, UserAlgorithmState, WatchHistoryItem } from '../types';
 import { getGenreName } from './tmdb';
+import { getCookieConsent, getUserCookiePreferences } from './cookieManager';
 
 // Local storage key constants
 const PROFILES_KEY = 'flxjo_profiles_table';
@@ -266,6 +267,7 @@ function adjustGenreScores(genres: number[], diff: number, interactions: UserInt
  * 2. REAL-TIME EVENT: Track Card Impression
  */
 export function trackImpression(mediaId: number) {
+  if (getCookieConsent() !== 'accepted') return;
   const interactions = getUserInteractions();
   interactions.impressions[mediaId] = (interactions.impressions[mediaId] || 0) + 1;
   saveUserInteractions(interactions);
@@ -275,6 +277,7 @@ export function trackImpression(mediaId: number) {
  * 2. REAL-TIME EVENT: Track Card Click CTR
  */
 export function trackClick(mediaId: number) {
+  if (getCookieConsent() !== 'accepted') return;
   const interactions = getUserInteractions();
   interactions.clicks[mediaId] = (interactions.clicks[mediaId] || 0) + 1;
   interactions.lastInteractionTime[mediaId] = new Date().toISOString();
@@ -286,6 +289,7 @@ export function trackClick(mediaId: number) {
  * Triggered on cursor hover > 3 seconds. Adds subtle genre boosts.
  */
 export function trackHover(item: MediaItem) {
+  if (getCookieConsent() !== 'accepted') return;
   const interactions = getUserInteractions();
   interactions.hoverHistory[item.id] = (interactions.hoverHistory[item.id] || 0) + 1;
   interactions.lastInteractionTime[item.id] = new Date().toISOString();
@@ -539,10 +543,50 @@ export function calculateTimeDecayFactor(mediaId: number, lastInterTime: Record<
 }
 
 /**
- * Rank All Media items using standard popularity (completely neutral and clean, no personal tracking bias)
+ * Rank media using popularity plus consented local preferences.
+ * If the visitor declines cookies, ranking stays popularity-first and does not read search history.
  */
 export function rankMediaItems(items: MediaItem[]): MediaItem[] {
-  return [...items].sort((a, b) => b.popularity - a.popularity);
+  let searchHistory: string[] = [];
+  let genreScores: Record<number, number> = {};
+  let likedIds: number[] = [];
+  let dislikedIds: number[] = [];
+
+  if (getCookieConsent() === 'accepted') {
+    const prefs = getUserCookiePreferences();
+    searchHistory = prefs.searchHistory || [];
+    const interactions = getUserInteractions();
+    genreScores = interactions.genreScores || {};
+    try {
+      likedIds = JSON.parse(localStorage.getItem('flxjo_liked_ids') || '[]');
+      dislikedIds = JSON.parse(localStorage.getItem('flxjo_disliked_ids') || '[]');
+    } catch (e) {
+      // Use empty preference lists if storage is malformed.
+    }
+  }
+
+  const normalizedSearches = searchHistory
+    .map(query => query.trim().toLocaleLowerCase())
+    .filter(Boolean)
+    .slice(0, 20);
+
+  const scoreItem = (item: MediaItem) => {
+    const title = (item.title || item.name || '').toLocaleLowerCase();
+    const overview = (item.overview || '').toLocaleLowerCase();
+    const haystack = `${title} ${overview}`;
+    const genreBoost = (item.genre_ids || []).reduce((sum, genreId) => {
+      return sum + (genreScores[genreId] || 0);
+    }, 0);
+    const searchBoost = normalizedSearches.reduce((sum, query) => {
+      const terms = query.split(/\\s+/).filter(term => term.length > 1);
+      const matches = terms.filter(term => haystack.includes(term)).length;
+      return sum + (matches * 28);
+    }, 0);
+    const preferenceBoost = likedIds.includes(item.id) ? 1000 : dislikedIds.includes(item.id) ? -1000 : 0;
+    return (item.popularity || 0) + (genreBoost * 0.35) + searchBoost + preferenceBoost;
+  };
+
+  return [...items].sort((a, b) => scoreItem(b) - scoreItem(a));
 }
 
 /**

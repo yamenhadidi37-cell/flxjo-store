@@ -457,12 +457,12 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
                     </h3>
                     <p className="text-xs text-zinc-500">
                       {lang === 'en' 
-                        ? 'Each active browser generates a unique file storing search inputs, clicked media, entry logs, and real-time status.' 
-                        : 'كل متصفح نشط ينشئ ملفاً فريداً يحفظ عمليات البحث، العروض التي شاهدها، سجلات الدخول والحالة الفورية.'}
+                        ? 'Only visitors who explicitly accepted analytics are listed here. Their profile shows the searches and titles shared after consent.'
+                        : 'المعروض هنا فقط الزوار الذين وافقوا صراحة على التحليلات. الملف يوضح البحث والعروض التي شاركها المستخدم بعد الموافقة.'}
                     </p>
                   </div>
-                  <span className="text-xs font-mono font-bold bg-zinc-900 px-3 py-1 border border-zinc-800 rounded-full text-red-500">
-                    {stats?.users?.length || 0} {lang === 'en' ? 'Active Profiles' : 'ملف مستخدم نشط'}
+                  <span className="text-xs font-mono font-bold bg-green-600/10 px-3 py-1 border border-green-500/20 rounded-full text-green-400">
+                    {stats?.consentedProfiles ?? stats?.users?.length ?? 0} {lang === 'en' ? 'Consent Profiles' : 'ملف بموافقة'}
                   </span>
                 </div>
 
@@ -489,6 +489,9 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
                               <span className="text-xs bg-red-600/10 border border-red-500/20 text-red-400 px-2.5 py-0.5 rounded-full font-bold">
                                 📍 {u.country || 'Unknown'}
                               </span>
+                              <span className="text-[10px] bg-green-600/10 border border-green-500/20 text-green-400 px-2.5 py-0.5 rounded-full font-bold">
+                                ✅ {lang === 'en' ? 'Analytics accepted' : 'وافق على التحليلات'}
+                              </span>
                             </div>
 
                             <div className="flex items-center gap-3 self-end sm:self-auto text-[11px] text-zinc-400 font-mono">
@@ -509,6 +512,9 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
                             <div className="sm:text-right">
                               {lang === 'en' ? 'Last Activity:' : 'آخر ظهور/نشاط:'} <span className="text-zinc-300 font-bold">{new Date(u.lastSeen).toLocaleString()}</span>
                             </div>
+                            <div className="text-green-400">
+                              {lang === 'en' ? 'Consent recorded:' : 'وقت الموافقة:'} <span className="text-zinc-300">{u.consentAt ? new Date(u.consentAt).toLocaleString() : '—'}</span>
+                            </div>
                           </div>
 
                           {/* Expanded Details section */}
@@ -518,6 +524,10 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
                               animate={{ opacity: 1, height: 'auto' }}
                               className="border-t border-zinc-900/80 pt-3 mt-3 grid grid-cols-1 md:grid-cols-2 gap-6"
                             >
+                              <div className="md:col-span-2 rounded-xl border border-green-500/10 bg-green-500/5 px-3 py-2 text-[10px] text-green-300">
+                                {lang === 'en' ? 'This activity is shown because this browser accepted the current analytics policy.' : 'هذا النشاط ظاهر لأن هذا المتصفح وافق على سياسة التحليلات الحالية.'}
+                              </div>
+
                               {/* User Searches */}
                               <div className="space-y-2">
                                 <h4 className="text-xs font-black text-zinc-400 flex items-center gap-1.5 uppercase tracking-wider">

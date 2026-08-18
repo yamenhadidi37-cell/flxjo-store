@@ -1,6 +1,6 @@
 import { MediaItem, Genre, TVEpisode, TVSeason } from '../types';
 import { getBlockedMediaInfo } from './blocklist';
-import { fetchWithTimeout } from './api';
+import { fetchWithTimeout, getApiUrl } from './api';
 import { normalizeQuery, calculateMatchScore, parseDirectQuery } from './searchNormalization';
 
 export const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
@@ -679,3 +679,74 @@ export async function getTop10ByCountry(countryCode: string): Promise<MediaItem[
   }
 }
 
+
+/**
+ * Fetch the official public Yango Play catalog, then resolve each official title
+ * to TMDB only for poster, synopsis and rating data. A generic TMDB popularity
+ * list must never be presented as Yango availability.
+ */
+export async function getYangoPlayMedia(): Promise<MediaItem[]> {
+  try {
+    const response = await fetchWithTimeout(getApiUrl('/api/yango-play'), {}, 8000);
+    if (!response.ok) throw new Error(`Yango catalog request failed: ${response.status}`);
+
+    const data = await response.json();
+    const catalog: Array<{ title?: string; original?: string | null }> = Array.isArray(data?.items) ? data.items : [];
+    if (catalog.length === 0) return [];
+
+    const normalizeTitle = (value: string) => value
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\u0600-\u06ff]+/g, ' ')
+      .trim();
+
+    const isLikelyMatch = (query: string, item: MediaItem) => {
+      const queryValue = normalizeTitle(query);
+      if (!queryValue) return false;
+      const candidates = [item.title, item.name, (item as any).original_title, (item as any).original_name]
+        .filter(Boolean)
+        .map((value) => normalizeTitle(String(value)));
+      if (candidates.some((candidate) => candidate === queryValue)) return true;
+      const words = queryValue.split(' ').filter((word) => word.length >= 3);
+      return words.length > 0 && candidates.some((candidate) => {
+        const matchedWords = words.filter((word) => candidate.includes(word)).length;
+        return matchedWords / words.length >= 0.6;
+      });
+    };
+
+    const resolved: MediaItem[] = [];
+    const seen = new Set<string>();
+    const entries = catalog.slice(0, 50);
+
+    // Resolve a few titles at a time so the catalog does not create a burst of TMDB requests.
+    for (let offset = 0; offset < entries.length; offset += 4) {
+      const batch = entries.slice(offset, offset + 4);
+      const batchMatches = await Promise.all(batch.map(async (entry) => {
+        const query = String(entry.title || entry.original || '').trim();
+        if (!query) return null;
+        try {
+          const results = await searchMedia(query, 1);
+          return results.find((item) => isLikelyMatch(query, item)) || null;
+        } catch (error) {
+          console.warn(`Unable to resolve Yango title: ${query}`, error);
+          return null;
+        }
+      }));
+
+      for (const match of batchMatches) {
+        if (!match) continue;
+        const key = `${match.media_type}:${match.id}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          resolved.push(match);
+        }
+      }
+    }
+
+    return filterAdultContent(resolved);
+  } catch (error) {
+    console.error('Error fetching official Yango Play catalog:', error);
+    return [];
+  }
+}

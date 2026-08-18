@@ -88,6 +88,11 @@ async function startServer() {
 
   // --- Start of Server-Side User Profile Tracking ---
   const USERS_DIR = path.join(process.cwd(), 'data', 'users');
+  const ANALYTICS_CONSENT_VERSION = '2026-08-16-analytics-v2';
+
+  function hasValidAnalyticsConsent(body: any): boolean {
+    return body?.consentStatus === 'accepted' && body?.consentVersion === ANALYTICS_CONSENT_VERSION;
+  }
 
   function ensureUsersDir() {
     if (!fs.existsSync(USERS_DIR)) {
@@ -108,6 +113,9 @@ async function startServer() {
     exits?: string[];
     currentMovie?: string;
     status?: string;
+    consentStatus?: 'accepted' | 'declined';
+    consentAt?: string;
+    consentVersion?: string;
   }
 
   function getUserProfile(userId: string, defaultIp = '', defaultCountry = 'Unknown', defaultBrowser = 'Unknown'): UserProfile {
@@ -852,6 +860,67 @@ async function startServer() {
     }
   }
 
+  // Official Yango Play public catalog proxy.
+  // The page exposes a serialized catalog in window.__APP__; we parse JSON only,
+  // never execute remote JavaScript, and cache the result briefly.
+  const YANGO_SELECTION_URL = 'https://play.yango.com/en/movies/selection/2507';
+  let yangoCatalogCache: { expiresAt: number; items: Array<{ title: string; original: string | null }> } | null = null;
+
+  app.get('/api/yango-play', async (_req, res) => {
+    const now = Date.now();
+    if (yangoCatalogCache && yangoCatalogCache.expiresAt > now) {
+      res.set('Cache-Control', 'public, max-age=600, stale-while-revalidate=1800');
+      return res.json({ source: YANGO_SELECTION_URL, fetchedAt: new Date(now).toISOString(), items: yangoCatalogCache.items });
+    }
+
+    try {
+      const upstream = await fetch(YANGO_SELECTION_URL, {
+        headers: { 'Accept': 'text/html', 'User-Agent': 'FLXJO catalog reader/1.0' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!upstream.ok) throw new Error(`Yango returned ${upstream.status}`);
+
+      const html = await upstream.text();
+      const stateMatch = html.match(/window\.__APP__\s*=\s*(\{.*?\});\s*<\/script>/s);
+      if (!stateMatch) throw new Error('Yango catalog state not found');
+      const appState = JSON.parse(stateMatch[1]);
+      const records: Array<{ title: string; original: string | null }> = [];
+      const seen = new Set<string>();
+
+      const collect = (value: unknown) => {
+        if (Array.isArray(value)) {
+          value.forEach(collect);
+          return;
+        }
+        if (!value || typeof value !== 'object') return;
+        const record = value as Record<string, any>;
+        const title = record.title;
+        const key = record.contentId || record.id;
+        const localizedTitle = typeof title?.localized === 'string' ? title.localized.trim() : '';
+        const originalTitle = typeof title?.original === 'string' ? title.original.trim() : null;
+        if (key && localizedTitle && record.gallery && !seen.has(String(key))) {
+          seen.add(String(key));
+          records.push({ title: localizedTitle, original: originalTitle });
+        }
+        Object.values(record).forEach(collect);
+      };
+
+      collect(appState);
+      if (records.length === 0) throw new Error('Yango catalog is empty');
+      const items = records.slice(0, 50);
+      yangoCatalogCache = { expiresAt: now + 10 * 60 * 1000, items };
+      res.set('Cache-Control', 'public, max-age=600, stale-while-revalidate=1800');
+      return res.json({ source: YANGO_SELECTION_URL, fetchedAt: new Date(now).toISOString(), items });
+    } catch (error: any) {
+      console.error('Error reading official Yango Play catalog:', error?.message || error);
+      if (yangoCatalogCache) {
+        res.set('Cache-Control', 'public, max-age=60');
+        return res.json({ source: YANGO_SELECTION_URL, fetchedAt: new Date(yangoCatalogCache.expiresAt - 10 * 60 * 1000).toISOString(), stale: true, items: yangoCatalogCache.items });
+      }
+      return res.status(502).json({ error: 'Official Yango Play catalog is temporarily unavailable' });
+    }
+  });
+
   // TMDB API Proxy Endpoint
   app.get('/api/tmdb', async (req, res) => {
     const { endpoint, ...params } = req.query;
@@ -905,7 +974,8 @@ async function startServer() {
 
   // Live Visitor Tracking Endpoint (Supabase 'visitors' table compatible)
   app.post('/api/track-visitor', async (req, res) => {
-    const { ip_address, country, current_movie, status, login_time, last_seen, userId } = req.body;
+    if (!hasValidAnalyticsConsent(req.body)) return res.json({ success: true, tracked: false });
+    const { ip_address, country, current_movie, status, login_time, last_seen, userId, consentVersion } = req.body;
     const ip = ip_address || (req.headers['x-forwarded-for'] as string || '').split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
     const nowStr = new Date().toISOString();
     const timeStr = login_time || new Date().toLocaleTimeString();
@@ -947,6 +1017,8 @@ async function startServer() {
       if (country) profile.country = country;
       profile.currentMovie = movieName;
       profile.status = userStatus;
+      profile.consentStatus = 'accepted';
+      profile.consentVersion = consentVersion;
       saveUserProfile(userId, profile);
     }
 
@@ -954,7 +1026,8 @@ async function startServer() {
   });
 
   app.post('/api/log-visit', (req, res) => {
-    const { country, userId, browser } = req.body;
+    if (!hasValidAnalyticsConsent(req.body)) return res.json({ success: true, tracked: false });
+    const { country, userId, browser, consentVersion } = req.body;
     const ip = (req.headers['x-forwarded-for'] as string || '').split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
     const userAgent = req.headers['user-agent'] || 'Unknown';
     const actualBrowser = browser || userAgent;
@@ -982,6 +1055,8 @@ async function startServer() {
       if (!profile.visits.includes(visitEntry.timestamp)) {
         profile.visits.push(visitEntry.timestamp);
       }
+      profile.consentStatus = 'accepted';
+      profile.consentVersion = consentVersion;
       saveUserProfile(userId, profile);
     }
 
@@ -997,7 +1072,8 @@ async function startServer() {
   });
 
   app.post('/api/log-search', (req, res) => {
-    const { query, lang, country, userId } = req.body;
+    if (!hasValidAnalyticsConsent(req.body)) return res.json({ success: true, tracked: false });
+    const { query, lang, country, userId, consentVersion } = req.body;
     if (!query) return res.status(400).json({ error: 'Query is required' });
 
     // Save to local JSON database
@@ -1023,6 +1099,8 @@ async function startServer() {
         lang: lang || 'ar',
         timestamp: searchEntry.timestamp
       });
+      profile.consentStatus = 'accepted';
+      profile.consentVersion = consentVersion;
       saveUserProfile(userId, profile);
     }
 
@@ -1038,7 +1116,8 @@ async function startServer() {
   });
 
   app.post('/api/log-media', (req, res) => {
-    const { id, title, type, country, userId } = req.body;
+    if (!hasValidAnalyticsConsent(req.body)) return res.json({ success: true, tracked: false });
+    const { id, title, type, country, userId, consentVersion } = req.body;
     if (!id || !title) return res.status(400).json({ error: 'Id and title are required' });
 
     // Save to local JSON database
@@ -1066,6 +1145,8 @@ async function startServer() {
         type: type || 'movie',
         timestamp: clickEntry.timestamp
       });
+      profile.consentStatus = 'accepted';
+      profile.consentVersion = consentVersion;
       saveUserProfile(userId, profile);
     }
 
@@ -1083,7 +1164,8 @@ async function startServer() {
 
   // Heartbeat endpoint to track online status
   app.post('/api/user-heartbeat', (req, res) => {
-    const { userId, country, browser } = req.body;
+    if (!hasValidAnalyticsConsent(req.body)) return res.json({ success: true, tracked: false });
+    const { userId, country, browser, consentVersion } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId is required' });
     const ip = (req.headers['x-forwarded-for'] as string || '').split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
     
@@ -1091,6 +1173,8 @@ async function startServer() {
     profile.lastSeen = new Date().toISOString();
     if (country) profile.country = country;
     if (browser) profile.browser = browser;
+    profile.consentStatus = 'accepted';
+    profile.consentVersion = consentVersion;
     saveUserProfile(userId, profile);
     
     res.json({ success: true });
@@ -1098,7 +1182,8 @@ async function startServer() {
 
   // Exit endpoint to track when user closes or leaves page
   app.post('/api/log-exit', (req, res) => {
-    const { userId } = req.body;
+    if (!hasValidAnalyticsConsent(req.body)) return res.json({ success: true, tracked: false });
+    const { userId, consentVersion } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId is required' });
     const ip = (req.headers['x-forwarded-for'] as string || '').split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
     
@@ -1107,9 +1192,44 @@ async function startServer() {
     profile.lastSeen = now;
     if (!profile.exits) profile.exits = [];
     profile.exits.push(now);
+    profile.consentStatus = 'accepted';
+    profile.consentVersion = consentVersion;
     saveUserProfile(userId, profile);
     
     res.json({ success: true });
+  });
+
+  // Explicit cookie/analytics consent. Declined users are not retained in the admin profile store.
+  app.post('/api/user-consent', (req, res) => {
+    const { userId, consentStatus, consentVersion, consentAt, country, browser } = req.body || {};
+    const safeId = String(userId || '').replace(/[^a-zA-Z0-9_\-]/g, '');
+
+    if (consentStatus === 'declined') {
+      if (safeId) {
+        try {
+          const userFile = path.join(USERS_DIR, `${safeId}.json`);
+          if (fs.existsSync(userFile)) fs.unlinkSync(userFile);
+        } catch (e) {
+          console.warn('Could not remove declined user profile');
+        }
+      }
+      return res.json({ success: true, tracked: false, removed: Boolean(safeId) });
+    }
+
+    if (consentStatus !== 'accepted' || consentVersion !== ANALYTICS_CONSENT_VERSION || !safeId) {
+      return res.status(400).json({ success: false, error: 'Valid explicit consent is required' });
+    }
+
+    const ip = (req.headers['x-forwarded-for'] as string || '').split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
+    const profile = getUserProfile(safeId, ip, country || 'Unknown', browser || 'Unknown');
+    profile.consentStatus = 'accepted';
+    profile.consentVersion = consentVersion;
+    profile.consentAt = consentAt || new Date().toISOString();
+    profile.ip = ip;
+    if (country) profile.country = country;
+    if (browser) profile.browser = browser;
+    saveUserProfile(safeId, profile);
+    return res.json({ success: true, tracked: true, userId: safeId });
   });
 
   // Verification & Stats API
@@ -1203,9 +1323,11 @@ async function startServer() {
     }
 
     const onlineCount = getOnlineCount();
-    const users = getAllUserProfiles();
+    const allUsers = getAllUserProfiles();
+    // Only profiles with current, explicit consent are visible in this user-level view.
+    const users = allUsers.filter((u) => u.consentStatus === 'accepted' && u.consentVersion === ANALYTICS_CONSENT_VERSION);
 
-    // Map local user profiles to visitor entries if visitorsList from Supabase is empty
+    // Map consented local user profiles to visitor entries if visitorsList from Supabase is empty
     if (visitorsList.length === 0 && users.length > 0) {
       visitorsList = users.map(u => {
         const isOnline = u.lastSeen && (Date.now() - new Date(u.lastSeen).getTime()) / 1000 <= 45;
@@ -1228,7 +1350,10 @@ async function startServer() {
       recentClicks,
       onlineCount,
       users,
+      consentedProfiles: users.length,
+      consentPolicyVersion: ANALYTICS_CONSENT_VERSION,
       visitorsList,
+      analyticsNotice: 'User-level search and click history is shown only after explicit consent.',
       telegramChatId: TELEGRAM_CHAT_ID,
       telegramTokenConfigured: !!TELEGRAM_TOKEN
     });

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { getTranslations } from '../translations';
 import { getBlockedMediaInfo } from '../lib/blocklist';
 import { slugify } from '../lib/slugify';
+import { trackClick } from '../lib/algorithm';
 
 interface MovieCardProps {
   key?: any;
@@ -26,6 +27,8 @@ export default function MovieCard({ item, onWatch, onPreferenceChange, lang }: M
   const t = getTranslations(lang);
 
   const handleCardClick = (e: React.MouseEvent) => {
+    // Click analytics is consent-gated inside trackClick.
+    trackClick(item.id);
     // Keep custom watch history logger/event handler working while navigating
     onWatch(translatedItem || item);
   };

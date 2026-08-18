@@ -639,10 +639,10 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
 
         {/* Content body split columns */}
         <div className="max-w-none px-4 md:px-12 lg:px-16 py-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className={`grid grid-cols-1 gap-8 ${item.media_type === 'tv' ? '' : 'lg:grid-cols-3'}`}>
             
             {/* Right column: Info & Story & Similar Recommendations */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className={item.media_type === 'tv' ? 'space-y-8' : 'lg:col-span-2 space-y-8'}>
               
               {/* Strategic Non-intrusive Ad Zone above Story details */}
               <AdZone type="banner" lang={lang} slot="8829152634" />
@@ -798,93 +798,130 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
             </div>
 
             {/* Left column: Episode selection lists OR Cinema Tips */}
-            <div className="lg:col-span-1">
+            <div className={item.media_type === 'tv' ? '' : 'lg:col-span-1'}>
               {item.media_type === 'tv' ? (
-                <div className="bg-zinc-900/30 border border-zinc-900 p-5 rounded-3xl space-y-4 flex flex-col h-[520px]">
-                  
+                <div className="relative overflow-hidden rounded-[2rem] border border-red-500/15 bg-zinc-950/80 p-4 sm:p-6 shadow-[0_24px_80px_-35px_rgba(239,68,68,0.45)]">
+                  <div className="pointer-events-none absolute -top-24 right-1/4 h-48 w-48 rounded-full bg-red-600/10 blur-3xl" />
+                  <div className="pointer-events-none absolute -bottom-24 left-10 h-40 w-40 rounded-full bg-fuchsia-600/10 blur-3xl" />
+
                   {/* Episodes List Header */}
-                  <div className="flex items-center justify-between border-b border-zinc-800 pb-3 shrink-0">
-                    <div className="flex items-center gap-2">
-                      <ListVideo className="w-5 h-5 text-red-500" />
-                      <h3 className="font-bold text-sm text-zinc-100">{lang === 'en' ? 'Episodes List' : 'قائمة الحلقات والمواسم'}</h3>
+                  <div className="relative flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3" dir={lang === 'en' ? 'ltr' : 'rtl'}>
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-red-500/25 bg-red-600/10 text-red-400 shadow-lg shadow-red-950/30">
+                        <ListVideo className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black tracking-tight text-white sm:text-lg">
+                          {lang === 'en' ? 'Episodes & Seasons' : 'قائمة الحلقات والمواسم'}
+                        </h3>
+                        <p className="mt-1 text-[10px] font-medium text-zinc-500 sm:text-xs">
+                          {lang === 'en' ? 'Choose an episode and start watching instantly.' : 'اختار الحلقة وابدأ المشاهدة مباشرة.'}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Seasons dropdown */}
                     {seasons.length > 0 && (
-                      <div className="relative inline-block">
+                      <div className="relative shrink-0">
                         <select
                           value={selectedSeason}
                           onChange={(e) => setSelectedSeason(Number(e.target.value))}
-                          className="bg-zinc-900 text-zinc-100 border border-zinc-800 px-3 py-1.5 rounded-xl text-xs font-bold focus:outline-none focus:border-red-600 cursor-pointer appearance-none pl-6 pr-2"
+                          aria-label={lang === 'en' ? 'Select season' : 'اختيار الموسم'}
+                          className="min-w-40 appearance-none rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 pl-10 pr-4 text-xs font-black text-zinc-100 outline-none transition-all hover:border-red-500/40 focus:border-red-500/70 focus:ring-2 focus:ring-red-500/10 cursor-pointer"
                         >
                           {seasons.map((s) => (
-                            <option key={s.season_number} value={s.season_number}>
+                            <option key={s.season_number} value={s.season_number} className="bg-zinc-900">
                               {s.name || (lang === 'en' ? `Season ${s.season_number}` : `الموسم ${s.season_number}`)}
                             </option>
                           ))}
                         </select>
-                        <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute left-2 top-2.5 pointer-events-none" />
+                        <ChevronDown className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-red-400" />
                       </div>
                     )}
                   </div>
 
                   {/* Episodes listing inside preview */}
-                  <div className={`flex-grow overflow-y-auto pr-1 space-y-2 ${lang === 'en' ? 'text-left' : 'text-right'}`}>
+                  <div className={`relative mt-5 max-h-[680px] space-y-3 overflow-y-auto pr-1 ${lang === 'en' ? 'text-left' : 'text-right'}`}>
                     {isBlockedShow ? (
-                      <div className="flex flex-col items-center justify-center gap-2 h-full text-center p-4">
-                        <AlertCircle className="w-8 h-8 text-zinc-600" />
-                        <h4 className="font-bold text-xs text-zinc-400">{lang === 'en' ? 'Episodes Blocked' : 'الحلقات محجوبة بالكامل'}</h4>
-                        <p className="text-[10px] text-zinc-500 leading-relaxed">
+                      <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/5 bg-white/[0.02] p-6 text-center">
+                        <AlertCircle className="h-9 w-9 text-zinc-600" />
+                        <h4 className="font-black text-sm text-zinc-300">{lang === 'en' ? 'Episodes Blocked' : 'الحلقات محجوبة بالكامل'}</h4>
+                        <p className="max-w-md text-xs leading-relaxed text-zinc-500">
                           {lang === 'en' 
                             ? 'Banned work. No episodes are available for stream.' 
                             : 'هذا العمل محظور وموقوف عن العرض بشكل نهائي ولا تتوفر أي حلقات للتشغيل.'}
                         </p>
                       </div>
                     ) : loadingEpisodes ? (
-                      <div className="flex flex-col items-center justify-center gap-2 h-full">
-                        <div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                        <p className="text-xs text-zinc-500">{lang === 'en' ? 'Loading episodes...' : 'جاري تحميل حلقات الموسم...'}</p>
+                      <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/5 bg-white/[0.02]">
+                        <div className="h-9 w-9 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+                        <p className="text-xs font-bold text-zinc-500">{lang === 'en' ? 'Loading episodes...' : 'جاري تحميل حلقات الموسم...'}</p>
                       </div>
                     ) : episodes.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center gap-1.5 text-center h-full text-zinc-500 text-xs">
-                        <AlertCircle className="w-6 h-6" />
+                      <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-3xl border border-white/5 bg-white/[0.02] text-center text-xs text-zinc-500">
+                        <AlertCircle className="h-7 w-7" />
                         <span>{lang === 'en' ? 'No episodes available yet.' : 'لا توجد حلقات متاحة لهذا الموسم حالياً.'}</span>
                       </div>
                     ) : (
                       episodes.map((ep) => {
+                        const active = selectedEpisode === ep.episode_number;
                         return (
                           <button
                             key={ep.id}
                             onClick={() => handleEpisodeSelect(ep.episode_number)}
-                            className="w-full text-right p-2.5 rounded-2xl border bg-zinc-950/40 border-zinc-900/80 hover:border-red-600/40 hover:bg-zinc-900/20 transition-all flex gap-3 cursor-pointer group"
+                            aria-label={lang === 'en' ? `Play episode ${ep.episode_number}` : `تشغيل الحلقة ${ep.episode_number}`}
+                            className={`group relative flex min-h-[94px] w-full items-center gap-4 overflow-hidden rounded-[1.35rem] border p-3 text-right transition-all duration-300 sm:min-h-[112px] sm:p-4 ${
+                              active
+                                ? 'border-red-500/70 bg-gradient-to-l from-red-950/60 via-zinc-900/80 to-zinc-950 shadow-[0_12px_35px_-18px_rgba(239,68,68,0.9)]'
+                                : 'border-white/[0.07] bg-white/[0.025] hover:-translate-y-0.5 hover:border-red-500/40 hover:bg-white/[0.06] hover:shadow-[0_14px_35px_-22px_rgba(239,68,68,0.8)]'
+                            }`}
                             dir={lang === 'en' ? 'ltr' : 'rtl'}
                           >
+                            <div className={`absolute inset-y-3 w-1 rounded-full bg-gradient-to-b from-red-400 via-red-600 to-fuchsia-600 transition-opacity ${lang === 'en' ? 'left-0' : 'right-0'} ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+
                             {/* Episode thumbnail */}
-                            <div className="w-16 h-12 bg-zinc-900 rounded-xl overflow-hidden shrink-0 border border-zinc-800 relative flex items-center justify-center">
+                            <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-xl sm:h-20 sm:w-32">
                               {ep.still_path ? (
                                 <img 
                                   src={getBackdropUrl(ep.still_path, 'w780')} 
-                                  alt={ep.name} 
-                                  className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+                                  alt={ep.name || `${lang === 'en' ? 'Episode' : 'الحلقة'} ${ep.episode_number}`}
+                                  className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
                                   referrerPolicy="no-referrer"
-                               />
+                                />
                               ) : (
-                                <Tv className="w-4 h-4 text-zinc-500" />
+                                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
+                                  <Tv className="h-6 w-6 text-zinc-500" />
+                                </div>
                               )}
-                              
-                              <span className="absolute bottom-1 right-1 bg-black/80 text-[8px] font-bold px-1.5 rounded">
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                              <span className="absolute bottom-2 right-2 rounded-lg border border-white/10 bg-black/75 px-2 py-1 text-[9px] font-black text-white backdrop-blur-sm">
                                 {lang === 'en' ? `E${ep.episode_number}` : `حـ ${ep.episode_number}`}
+                              </span>
+                              <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+                                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-white shadow-xl shadow-red-950/60">
+                                  <Play className="h-4 w-4 fill-current" />
+                                </span>
                               </span>
                             </div>
 
                             {/* Episode texts */}
-                            <div className={`flex-grow space-y-0.5 overflow-hidden ${lang === 'en' ? 'text-left' : 'text-right'}`}>
-                              <h4 className="font-bold text-xs truncate text-zinc-200 group-hover:text-red-500 transition-colors">
-                                {lang === 'en' ? `Episode ${ep.episode_number}` : `الحلقة ${ep.episode_number}`}: {ep.name || 'mjehol'}
+                            <div className={`min-w-0 flex-1 ${lang === 'en' ? 'text-left' : 'text-right'}`}>
+                              <div className="mb-2 flex items-center gap-2">
+                                <span className={`rounded-lg px-2 py-1 text-[9px] font-black ${active ? 'bg-red-600 text-white' : 'bg-white/[0.07] text-zinc-400'}`}>
+                                  {lang === 'en' ? `EPISODE ${ep.episode_number}` : `الحلقة ${ep.episode_number}`}
+                                </span>
+                                {active && <span className="text-[9px] font-black uppercase tracking-wider text-red-400">{lang === 'en' ? 'Playing now' : 'تشتغل هسا'}</span>}
+                              </div>
+                              <h4 className="truncate text-sm font-black text-zinc-100 transition-colors group-hover:text-red-300 sm:text-base">
+                                {ep.name || (lang === 'en' ? `Episode ${ep.episode_number}` : `الحلقة ${ep.episode_number}`)}
                               </h4>
-                              <p className="text-[10px] text-zinc-400 line-clamp-2 leading-relaxed font-normal">
-                                {ep.overview || (lang === 'en' ? 'No English overview available for this episode.' : 'لا يوجد ملخص متوفر لهذه الحلقة حالياً.')}
+                              <p className="mt-1 line-clamp-2 text-[10px] font-medium leading-relaxed text-zinc-500 sm:text-xs">
+                                {ep.overview || (lang === 'en' ? 'No overview available for this episode yet.' : 'لا يوجد ملخص متوفر لهذه الحلقة حالياً.')}
                               </p>
+                            </div>
+
+                            <div className={`hidden shrink-0 items-center justify-center rounded-full border p-2.5 transition-all sm:flex ${active ? 'border-red-500/40 bg-red-600 text-white' : 'border-white/10 bg-white/[0.04] text-zinc-500 group-hover:border-red-500/40 group-hover:bg-red-600/15 group-hover:text-red-300'}`}>
+                              <Play className="h-4 w-4 fill-current" />
                             </div>
                           </button>
                         );
@@ -1177,27 +1214,27 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
 
           <div className="lg:col-span-1">
             {item.media_type === 'tv' && seasons.length > 0 && (
-              <div className="bg-zinc-900/30 border border-zinc-800 p-4 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="relative overflow-hidden rounded-[1.75rem] border border-red-500/15 bg-zinc-950/75 p-4 shadow-[0_20px_55px_-30px_rgba(239,68,68,0.55)]">
+                <div className="mb-3 flex items-center justify-between gap-2">
                   <h3 className="font-bold text-xs text-zinc-200">{lang === 'en' ? 'Quick Episode Switcher:' : 'تبديل حلقة البث سريعاً:'}</h3>
                   <span className="text-[10px] text-zinc-500">{lang === 'en' ? `Season ${selectedSeason}` : `الموسم ${selectedSeason}`}</span>
                 </div>
-                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                <div className="max-h-[30rem] space-y-2.5 overflow-y-auto pr-1">
                   {episodes.map((ep) => {
                     const active = selectedEpisode === ep.episode_number;
                     return (
                       <button
                         key={ep.id}
                         onClick={() => handleEpisodeSelect(ep.episode_number)}
-                        className={`w-full text-right p-2 rounded-xl border transition-all flex gap-3 cursor-pointer group ${
+                        className={`group relative flex min-h-[76px] w-full items-center gap-3 overflow-hidden rounded-2xl border p-2.5 text-right transition-all duration-300 cursor-pointer ${
                           active 
-                            ? 'bg-red-600/10 border-red-600 text-white' 
-                            : 'bg-zinc-950/60 border-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-900/40'
+                            ? 'border-red-500/70 bg-red-950/45 text-white shadow-[0_10px_25px_-18px_rgba(239,68,68,0.9)]'
+                            : 'border-white/[0.07] bg-white/[0.025] text-zinc-400 hover:-translate-y-0.5 hover:border-red-500/40 hover:bg-white/[0.06]'
                         }`}
                         dir={lang === 'en' ? 'ltr' : 'rtl'}
                       >
                         {/* Thumbnail */}
-                        <div className="w-16 h-11 bg-zinc-900 rounded-lg overflow-hidden shrink-0 border border-zinc-800 relative flex items-center justify-center">
+                        <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-900 sm:h-16 sm:w-28">
                           {ep.still_path ? (
                             <img 
                               src={getBackdropUrl(ep.still_path, 'w780')} 
@@ -1208,14 +1245,15 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
                           ) : (
                             <Tv className="w-4 h-4 text-zinc-500" />
                           )}
-                          <span className="absolute bottom-0.5 right-0.5 bg-black/80 text-[8px] font-bold px-1 rounded">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                          <span className="absolute bottom-1 right-1 rounded-md border border-white/10 bg-black/75 px-1.5 py-0.5 text-[8px] font-black">
                             {lang === 'en' ? `E${ep.episode_number}` : `حـ ${ep.episode_number}`}
                           </span>
                         </div>
 
                         {/* Texts */}
-                        <div className={`flex-grow space-y-0.5 overflow-hidden ${lang === 'en' ? 'text-left' : 'text-right'} self-center`}>
-                          <h4 className={`font-bold text-[11px] truncate ${active ? 'text-red-500' : 'text-zinc-200 group-hover:text-red-500'}`}>
+                        <div className={`min-w-0 flex-grow space-y-1 overflow-hidden ${lang === 'en' ? 'text-left' : 'text-right'} self-center`}>
+                          <h4 className={`truncate text-xs font-black ${active ? 'text-red-300' : 'text-zinc-200 group-hover:text-red-300'}`}>
                             {lang === 'en' ? `Episode ${ep.episode_number}` : `الحلقة ${ep.episode_number}`}
                           </h4>
                           <span className="text-[10px] text-zinc-500 truncate block">
