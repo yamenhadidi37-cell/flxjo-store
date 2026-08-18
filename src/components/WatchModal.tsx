@@ -642,7 +642,7 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
           <div className={`grid grid-cols-1 gap-8 ${item.media_type === 'tv' ? '' : 'lg:grid-cols-3'}`}>
             
             {/* Right column: Info & Story & Similar Recommendations */}
-            <div className={item.media_type === 'tv' ? 'space-y-8' : 'lg:col-span-2 space-y-8'}>
+            <div className={item.media_type === 'tv' ? 'contents' : 'lg:col-span-2 space-y-8'}>
               
               {/* Strategic Non-intrusive Ad Zone above Story details */}
               <AdZone type="banner" lang={lang} slot="8829152634" />
@@ -758,7 +758,7 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
 
               {/* Related/Similar recommendations matching user's taste */}
               {relatedMedia.length > 0 && (
-                <div className="space-y-4">
+                <div className={item.media_type === 'tv' ? 'order-3 space-y-4' : 'space-y-4'}>
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-red-500" />
                     <h3 className="font-bold text-md text-zinc-100">{lang === 'en' ? 'More Like This ✨' : 'اقتراحات مشابهة مخصصة لذوقك المفضل ✨'}</h3>
@@ -798,7 +798,7 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
             </div>
 
             {/* Left column: Episode selection lists OR Cinema Tips */}
-            <div className={item.media_type === 'tv' ? '' : 'lg:col-span-1'}>
+            <div className={item.media_type === 'tv' ? 'order-2' : 'lg:col-span-1'}>
               {item.media_type === 'tv' ? (
                 <div className="relative overflow-hidden rounded-[2rem] border border-red-500/15 bg-zinc-950/80 p-4 sm:p-6 shadow-[0_24px_80px_-35px_rgba(239,68,68,0.45)]">
                   <div className="pointer-events-none absolute -top-24 right-1/4 h-48 w-48 rounded-full bg-red-600/10 blur-3xl" />
