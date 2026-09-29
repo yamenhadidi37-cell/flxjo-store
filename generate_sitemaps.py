@@ -6,7 +6,7 @@ from datetime import datetime
 # إعدادات الروابط والأسرار
 # سنستخدم المفتاح الموجود في tmdb.ts كقيمة افتراضية إذا لم يتوفر Secret
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "c714ec95383c51abcde6afdf2e1571b9")
-BASE_URL = os.environ.get("SITE_BASE_URL", "https://yamenhadidi37-cell.github.io/flxjo-store")
+BASE_URL = os.environ.get("SITE_BASE_URL", "https://flexjo.sbs")
 
 OUTPUT_DIR = "public"
 MAX_PAGES = 5  # تقليل العدد لتسريع العملية وضمان النجاح في GitHub Actions
