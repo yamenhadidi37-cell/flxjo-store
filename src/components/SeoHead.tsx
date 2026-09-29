@@ -200,7 +200,7 @@ export default function SeoHead({
     };
 
     // Standard SEO Tags
-    setMetaTag('name', 'google-site-verification', 'NSdY4h5pH0VVdwEK36LgS7gnPXVmXK-MjvAF4-TJi04');
+    setMetaTag('name', 'google-site-verification', 'Vrd8mh5NrAEEiVIKFj-f_j8bwSr3qU4SBbSZEYMO9SQ');
     setMetaTag('name', 'description', pageDesc);
     setMetaTag('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
     setMetaTag('name', 'keywords', lang === 'ar' 
