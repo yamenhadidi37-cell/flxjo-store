@@ -36,6 +36,7 @@ export default function SeoHead({
     if (item) {
       const isMovie = item.media_type === 'movie' || (!item.media_type && item.title);
       const mediaTitle = item.title || item.name || '';
+      const originalTitle = item.original_title || item.original_name || mediaTitle;
       const releaseYear = (item.release_date || item.first_air_date || '').substring(0, 4);
       const yearStr = releaseYear ? ` (${releaseYear})` : '';
 
@@ -45,16 +46,16 @@ export default function SeoHead({
           : `مشاهدة مسلسل ${mediaTitle}${yearStr} جميع الحلقات HD | ${siteName}`;
         
         pageDesc = item.overview && item.overview.trim().length > 10
-          ? `${item.overview.substring(0, 155)}... مشاهدة وتحميل ${mediaTitle} بجودة عالية بدون إعلانات مزعجة على فلكس جو.`
-          : `شاهد الآن ${isMovie ? 'فيلم' : 'مسلسل'} ${mediaTitle}${yearStr} مترجم بأعلى جودة HD وسيرفرات سريعة على منصة فلكس جو السينمائية.`;
+          ? `${item.overview.substring(0, 155)}... مشاهدة ${mediaTitle} مترجم بجودة عالية على فلكس جو.`
+          : `شاهد ${isMovie ? 'فيلم' : 'مسلسل'} ${mediaTitle}${yearStr} مترجم بجودة HD مع ترجمة عربية على منصة فلكس جو.`;
       } else {
         pageTitle = isMovie
-          ? `Watch ${mediaTitle}${yearStr} Full Movie Online Free HD | ${siteName}`
-          : `Watch ${mediaTitle}${yearStr} Full Series Online HD | ${siteName}`;
+          ? `Watch ${originalTitle}${yearStr} Full Movie Online HD | ${siteName}`
+          : `Watch ${originalTitle}${yearStr} Full Series Online HD | ${siteName}`;
         
         pageDesc = item.overview && item.overview.trim().length > 10
-          ? `${item.overview.substring(0, 155)}... Stream ${mediaTitle} in high definition with subtitles on FlxJo.`
-          : `Stream ${mediaTitle}${yearStr} free in HD quality with multi-subtitle support on FlxJo Cinema.`;
+          ? `${item.overview.substring(0, 155)}... Watch ${originalTitle} online in HD with subtitles on FlxJo.`
+          : `Watch ${originalTitle}${yearStr} online in HD with Arabic and English subtitles on FlxJo Cinema.`;
       }
 
       const backdrop = item.backdrop_path ? getBackdropUrl(item.backdrop_path, 'original') : null;
@@ -203,9 +204,10 @@ export default function SeoHead({
     setMetaTag('name', 'google-site-verification', 'Vrd8mh5NrAEEiVIKFj-f_j8bwSr3qU4SBbSZEYMO9SQ');
     setMetaTag('name', 'description', pageDesc);
     setMetaTag('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
-    setMetaTag('name', 'keywords', lang === 'ar' 
-      ? 'مشاهدة افلام, مشاهدة فيلم, مشهدي, مشاهدة مسلسلات, مشاهدة حلقات, تحميل مسلسلات, انمي مترجم, فلكس جو, flxjo, افلام 2026, مسلسلات هوليوود'
-      : 'watch movies online, free streaming, hd movies, tv series, anime streaming, flxjo');
+    const itemKeywords = item
+      ? `${item.title || item.name || ''}, ${item.original_title || item.original_name || ''}, مشاهدة, مشاهدة فيلم, مشاهدة مسلسل, حلقات مترجمة, فيلم مترجم, جودة HD, 4K, watch online, full movie, full series, Arabic subtitles, English subtitles, FlxJo`
+      : 'مشاهدة افلام, مشاهدة فيلم, مشاهدة مسلسلات, مشاهدة حلقات, انمي مترجم, فلكس جو, flxjo, watch movies online, hd movies, tv series, Arabic subtitles';
+    setMetaTag('name', 'keywords', itemKeywords);
 
     // OpenGraph Tags
     setMetaTag('property', 'og:site_name', siteName);
