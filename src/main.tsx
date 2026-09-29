@@ -6,9 +6,8 @@ import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter basename="/flxjo-store/">
+    <BrowserRouter>
       <App />
     </BrowserRouter>
   </StrictMode>,
 );
-

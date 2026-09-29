@@ -26,7 +26,7 @@ jobs:
       - name: Run Sitemap Generator Script
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          SITE_BASE_URL: "https://yamenhadidi37-cell.github.io/flxjo-store"
+          SITE_BASE_URL: "https://flexjo.sbs"
         run: python generate_sitemaps.py
 
       - name: Commit and push generated sitemaps to repository
