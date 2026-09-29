@@ -201,7 +201,7 @@ export default function SeoHead({
     };
 
     // Standard SEO Tags
-    setMetaTag('name', 'google-site-verification', 'Vrd8mh5NrAEEiVIKFj-f_j8bwSr3qU4SBbSZEYMO9SQ');
+    setMetaTag('name', 'google-site-verification', 'I-u7RLpP2Dejp0P48NI_PrKaq4HbJwerclqFBZ19sLM');
     setMetaTag('name', 'description', pageDesc);
     setMetaTag('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
     const itemKeywords = item
