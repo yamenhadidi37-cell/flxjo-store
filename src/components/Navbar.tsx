@@ -7,7 +7,7 @@ import {
 import { getAlgorithmState } from '../lib/algorithm';
 import { getTranslations } from '../translations';
 import { getFastSuggestions, getPosterUrl } from '../lib/tmdb';
-import { slugify } from '../lib/slugify';
+import { getMediaSlug } from '../lib/slugify';
 import { MediaItem } from '../types';
 
 interface NavbarProps {
@@ -129,7 +129,7 @@ export default function Navbar({
     setSearchVal('');
     onSearch('');
     const mediaType = item.media_type === 'tv' ? 'tv' : 'movie';
-    const slug = slugify(item.title || item.name);
+    const slug = getMediaSlug(item);
     navigate(`/${mediaType}/${item.id}/${slug}`);
   };
 
@@ -495,5 +495,4 @@ export default function Navbar({
     </header>
   );
 }
-
 

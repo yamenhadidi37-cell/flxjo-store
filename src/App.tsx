@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTranslations } from './translations';
-import { slugify } from './lib/slugify';
+import { getMediaSlug } from './lib/slugify';
 import { fetchWithTimeout, getApiUrl } from './lib/api';
 import { getDaily50 } from './lib/dailySeededSelection';
 import { recordSearchQueryInCookie, getUserCookiePreferences, getCookieConsent, clearUserTrackingData, COOKIE_POLICY_VERSION } from './lib/cookieManager';
@@ -160,7 +160,7 @@ function WatchPage({ onPreferenceChange, lang }: { onPreferenceChange: () => voi
   };
 
   const handleWatchNext = (nextItem: MediaItem) => {
-    const slug = slugify(nextItem.title || nextItem.name);
+    const slug = getMediaSlug(nextItem);
     navigate(`/watch/${nextItem.media_type || 'movie'}/${slug}/${nextItem.id}`);
   };
 
@@ -243,7 +243,7 @@ export default function App() {
   };
 
   const handleWatchMedia = (item: MediaItem) => {
-    const slug = slugify(item.title || item.name);
+    const slug = getMediaSlug(item);
     navigate(`/watch/${item.media_type || 'movie'}/${slug}/${item.id}`);
   };
 

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { MediaItem } from '../types';
 import { getBackdropUrl, getPosterUrl } from '../lib/tmdb';
-import { slugify } from '../lib/slugify';
+import { getMediaSlug } from '../lib/slugify';
 
 interface SeoHeadProps {
   title?: string;
@@ -64,7 +64,7 @@ export default function SeoHead({
       ogType = isMovie ? 'video.movie' : 'video.tv_show';
 
       // Build JSON-LD Schema (Multi-layer Graph)
-      const itemSlug = slugify(mediaTitle);
+      const itemSlug = getMediaSlug(item);
       const itemPath = isMovie ? `/movie/${item.id}/${itemSlug}` : `/tv/${item.id}/${itemSlug}`;
       const itemUrl = `${baseUrl}${itemPath}`;
       const voteCount = (item as any).vote_count || 100;

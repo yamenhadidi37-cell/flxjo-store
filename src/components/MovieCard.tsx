@@ -6,7 +6,7 @@ import { Play, Star, Sparkles, Film, Tv } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTranslations } from '../translations';
 import { getBlockedMediaInfo } from '../lib/blocklist';
-import { slugify } from '../lib/slugify';
+import { getMediaSlug } from '../lib/slugify';
 import { trackClick } from '../lib/algorithm';
 
 interface MovieCardProps {
@@ -75,7 +75,7 @@ export default function MovieCard({ item, onWatch, onPreferenceChange, lang }: M
   const isAnime = item.genre_ids?.includes(16) || item.original_language === 'ja' || displayItem.genre_ids?.includes(16);
 
   const mediaTypeStr = item.media_type || 'movie';
-  const itemSlug = slugify(title);
+  const itemSlug = getMediaSlug(displayItem);
   const watchUrl = `/${mediaTypeStr}/${item.id}/${itemSlug}`;
 
   return (
@@ -194,4 +194,3 @@ export default function MovieCard({ item, onWatch, onPreferenceChange, lang }: M
     </div>
   );
 }
-
