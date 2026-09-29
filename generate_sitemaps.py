@@ -54,6 +54,8 @@ def fetch_media_items(media_type):
 
 
 def add_url(urlset, loc, now, priority="0.7", changefreq="weekly"):
+    if not loc.endswith("/"):
+        loc += "/"
     url_el = ET.SubElement(urlset, "url")
     ET.SubElement(url_el, "loc").text = loc
     ET.SubElement(url_el, "lastmod").text = now
