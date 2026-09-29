@@ -9,7 +9,7 @@ TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "c714ec95383c51abcde6afdf2e1571b9"
 BASE_URL = os.environ.get("SITE_BASE_URL", "https://flexjo.sbs")
 
 OUTPUT_DIR = "public"
-MAX_PAGES = 5  # تقليل العدد لتسريع العملية وضمان النجاح في GitHub Actions
+MAX_PAGES = 20  # فهرسة أوسع للمواد الشائعة بدون تجاوز حد sitemap
 
 def fetch_media_ids(media_type):
     ids = []
@@ -62,14 +62,14 @@ def generate_sitemap():
 
     for mid in movie_ids:
         url_el = ET.SubElement(urlset, "url")
-        ET.SubElement(url_el, "loc").text = f"{BASE_URL.rstrip('/')}/watch/movie/{mid}"
+        ET.SubElement(url_el, "loc").text = f"{BASE_URL.rstrip('/')}/movie/{mid}"
         ET.SubElement(url_el, "lastmod").text = now
         ET.SubElement(url_el, "changefreq").text = "weekly"
         ET.SubElement(url_el, "priority").text = "0.7"
 
     for tid in tv_ids:
         url_el = ET.SubElement(urlset, "url")
-        ET.SubElement(url_el, "loc").text = f"{BASE_URL.rstrip('/')}/watch/tv/{tid}"
+        ET.SubElement(url_el, "loc").text = f"{BASE_URL.rstrip('/')}/tv/{tid}"
         ET.SubElement(url_el, "lastmod").text = now
         ET.SubElement(url_el, "changefreq").text = "weekly"
         ET.SubElement(url_el, "priority").text = "0.7"

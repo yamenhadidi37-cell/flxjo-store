@@ -7,7 +7,6 @@ import WatchModal from './components/WatchModal';
 import SecurityGuard from './components/SecurityGuard';
 import VersionGuard from './components/VersionGuard';
 import AdZone from './components/AdZone';
-import CookieConsent from './components/CookieConsent';
 import SeoHead from './components/SeoHead';
 import DiscoveryPanel, { DiscoveryFilters } from './components/DiscoveryPanel';
 import AdminPortal from './components/AdminPortal';
@@ -335,7 +334,6 @@ export default function App() {
   }, [lang]);
 
   const [consentState, setConsentState] = useState(getCookieConsent());
-  const [showCookieSettings, setShowCookieSettings] = useState(false);
 
   const syncConsentWithServer = async (nextConsent: 'accepted' | 'declined') => {
     const existingUid = localStorage.getItem('flexjo_user_id') || '';
@@ -901,7 +899,6 @@ export default function App() {
     <SecurityGuard lang={lang}>
       <VersionGuard lang={lang}>
         <div className={`min-h-screen text-white selection:bg-red-600 selection:text-white transition-colors duration-300 ${theme === 'light' ? 'flxjo-light' : 'bg-zinc-950'}`} dir={lang === 'en' ? 'ltr' : 'rtl'}>
-        <CookieConsent lang={lang} open={showCookieSettings} onChange={handleCookieConsentChange} />
       
       {/* Global Savage Alert Banner */}
       {globalAlert && (
@@ -1809,13 +1806,6 @@ export default function App() {
               <span>{lang === 'en' ? 'Admin Portal' : 'بوابة الإدارة (Admin)'}</span>
             </Link>
             <span className="text-zinc-700">•</span>
-            <button
-              onClick={() => setShowCookieSettings(true)}
-              className="hover:text-red-400 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <span>🍪</span>
-              <span>{lang === 'en' ? 'Cookie settings' : 'إعدادات الكوكيز'}</span>
-            </button>
           </div>
           <p className="text-[10px] text-zinc-600">
             {lang === 'en' 
