@@ -14,9 +14,19 @@ def slugify(text):
     """Match the app's readable Unicode slug format."""
     text = (text or "media").strip().lower()
     text = re.sub(r"[\s\t\n\r_]+", "-", text)
-    text = re.sub(r"[^\w\-]", "", text, flags=re.UNICODE)
+    text = re.sub(r"[^a-z0-9\-]", "", text)
     text = re.sub(r"-+", "-", text).strip("-")
     return text or "media"
+
+
+def media_slug(item, media_type):
+    candidates = ([item.get("original_title"), item.get("title")]
+                  if media_type == "movie" else
+                  [item.get("original_name"), item.get("name")])
+    for candidate in candidates:
+        if candidate and re.search(r"[a-z]", candidate, re.I):
+            return slugify(candidate)
+    return str(item.get("id", "media"))
 
 
 def fetch_media_items(media_type):
@@ -67,12 +77,10 @@ def generate_sitemap():
     tv_items = fetch_media_items("tv")
 
     for item in movie_items.values():
-        title = item.get("title") or item.get("original_title") or "movie"
-        add_url(urlset, f"{clean_base}/movie/{item['id']}/{slugify(title)}", now)
+        add_url(urlset, f"{clean_base}/movie/{item['id']}/{media_slug(item, 'movie')}", now)
 
     for item in tv_items.values():
-        title = item.get("name") or item.get("original_name") or "series"
-        add_url(urlset, f"{clean_base}/tv/{item['id']}/{slugify(title)}", now)
+        add_url(urlset, f"{clean_base}/tv/{item['id']}/{media_slug(item, 'tv')}", now)
 
     sitemap_path = os.path.join(OUTPUT_DIR, "sitemap.xml")
     xml_str = ET.tostring(urlset, encoding="utf-8", xml_declaration=True).decode("utf-8")
