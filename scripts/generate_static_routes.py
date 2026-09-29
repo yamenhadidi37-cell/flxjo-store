@@ -26,11 +26,25 @@ def main():
 
     root = ET.parse(SITEMAP).getroot()
     routes = set()
+    media_routes = []
     for node in root.findall(f"{NS}url/{NS}loc"):
         if node.text:
             route = route_from_url(node.text)
             if route and not route.startswith("assets/"):
                 routes.add(route)
+                parts = route.split("/")
+                if len(parts) == 3 and parts[0] in {"movie", "tv"}:
+                    media_routes.append(parts)
+
+    # Keep old links shared by the app and Search Console working:
+    # /watch/movie/<slug>/<id>/ and /watch/tv/<slug>/<id>/.
+    # They are aliases; canonical SEO URLs remain /movie/<id>/<slug>/.
+    for media_type, media_id, slug in media_routes:
+        routes.add(f"watch/{media_type}/{slug}/{media_id}")
+
+    # Important legacy URL already discovered by Search Console.
+    routes.add("watch/movie/geostorm/274855")
+    routes.add("movie/274855/geostorm")
 
     created = 0
     for route in sorted(routes):
