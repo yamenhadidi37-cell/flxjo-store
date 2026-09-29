@@ -8,6 +8,14 @@
     <meta name="description" content="منصة فلكس جو لمشاهدة أحدث الأفلام، المسلسلات، والأنمي بجودة عالية وسيرفرات بياثيفاي وفيدنيست السريعة مع ترجمة تلقائية." />
     <meta name="keywords" content="مشاهدة افلام, مشاهدة فيلم, مشهدي, مشاهدة مسلسلات, مشاهدة حلقات, انمي مترجم, فلكس جو, flxjo" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
+    <script>
+      // Vite emits relative assets so both GitHub Pages and the custom domain work.
+      // Set the base before module assets load, including on deep links.
+      (function () {
+        var base = window.location.hostname.endsWith('.github.io') ? '/flxjo-store/' : '/';
+        document.write('<base href="' + base + '">');
+      })();
+    </script>
     
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="video.movie" />
