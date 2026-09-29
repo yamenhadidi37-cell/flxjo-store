@@ -24,7 +24,7 @@ export default function SeoHead({
 }: SeoHeadProps) {
   useEffect(() => {
     const siteName = lang === 'en' ? 'FlxJo Cinema Platform' : 'فلكس جو | FLXJO';
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://yamenhadidi37-cell.github.io/flxjo-store';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://flexjo.sbs';
     const currentUrl = canonicalUrl || (typeof window !== 'undefined' ? window.location.href : baseUrl);
 
     let pageTitle = '';
@@ -204,7 +204,7 @@ export default function SeoHead({
     setMetaTag('name', 'description', pageDesc);
     setMetaTag('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
     setMetaTag('name', 'keywords', lang === 'ar' 
-      ? 'مشاهدة افلام, تحميل مسلسلات, انمي مترجم, فلكس جو, flxjo, افلام 2026, مسلسلات هوليوود'
+      ? 'مشاهدة افلام, مشاهدة فيلم, مشهدي, مشاهدة مسلسلات, مشاهدة حلقات, تحميل مسلسلات, انمي مترجم, فلكس جو, flxjo, افلام 2026, مسلسلات هوليوود'
       : 'watch movies online, free streaming, hd movies, tv series, anime streaming, flxjo');
 
     // OpenGraph Tags

@@ -6,6 +6,8 @@
     <meta name="google-site-verification" content="NSdY4h5pH0VVdwEK36LgS7gnPXVmXK-MjvAF4-TJi04" />
     <title>FlxJo | فلكس جو - مشاهدة الأفلام والمسلسلات والأنمي</title>
     <meta name="description" content="منصة فلكس جو لمشاهدة أحدث الأفلام، المسلسلات، والأنمي بجودة عالية وسيرفرات بياثيفاي وفيدنيست السريعة مع ترجمة تلقائية." />
+    <meta name="keywords" content="مشاهدة افلام, مشاهدة فيلم, مشهدي, مشاهدة مسلسلات, مشاهدة حلقات, انمي مترجم, فلكس جو, flxjo" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="video.movie" />
@@ -32,10 +34,10 @@
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "FlxJo",
-      "url": "https://yamenhadidi37-cell.github.io/flxjo-store",
+      "url": "https://flexjo.sbs",
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "https://yamenhadidi37-cell.github.io/flxjo-store/search?q={search_term_string}",
+        "target": "https://flexjo.sbs/search?q={search_term_string}",
         "query-input": "required name=search_term_string"
       }
     }
@@ -48,7 +50,7 @@
           var queryIndex = payload.indexOf('&');
           var route = queryIndex === -1 ? payload : payload.slice(0, queryIndex);
           var query = queryIndex === -1 ? '' : '?' + payload.slice(queryIndex + 1).replace(/~and~/g, '&');
-          var base = '/flxjo-store/';
+          var base = window.location.hostname.endsWith('.github.io') ? '/flxjo-store/' : '/';
           window.history.replaceState(null, '', base + route + query + window.location.hash);
         }
       })();
@@ -59,4 +61,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

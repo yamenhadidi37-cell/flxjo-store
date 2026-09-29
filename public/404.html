@@ -5,7 +5,7 @@
     <title>Loading…</title>
     <script>
       (function () {
-        var base = '/flxjo-store/';
+        var base = window.location.hostname.endsWith('.github.io') ? '/flxjo-store/' : '/';
         var path = window.location.pathname;
         var route = path.indexOf(base) === 0 ? path.slice(base.length) : path.replace(/^\/+/, '');
         var query = window.location.search.replace(/^\?/, '&');
