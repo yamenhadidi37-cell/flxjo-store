@@ -4,7 +4,8 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
-  const base = process.env.VITE_BASE_PATH || '/';
+  // Relative assets work on both the custom domain and /flxjo-store/ Pages URL.
+  const base = process.env.VITE_BASE_PATH || './';
 
   return {
     base,
