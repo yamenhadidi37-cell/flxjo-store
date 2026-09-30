@@ -93,19 +93,20 @@ def generate_sitemap():
     for item in tv_items.values():
         add_url(tv, f"{clean_base}/tv/{item['id']}/{media_slug(item, 'tv')}", now)
 
+    # Keep the child maps for diagnostics, but make the main sitemap a
+    # straightforward flat urlset like the format most validators display.
     write_xml(pages, os.path.join(OUTPUT_DIR, "sitemap-pages.xml"))
     write_xml(movies, os.path.join(OUTPUT_DIR, "sitemap-movies.xml"))
     write_xml(tv, os.path.join(OUTPUT_DIR, "sitemap-tv.xml"))
 
-    index = ET.Element("sitemapindex", xmlns=NS)
-    for name in ["sitemap-pages.xml", "sitemap-movies.xml", "sitemap-tv.xml"]:
-        sitemap = ET.SubElement(index, "sitemap")
-        ET.SubElement(sitemap, "loc").text = f"{clean_base}/{name}"
-        ET.SubElement(sitemap, "lastmod").text = now
-    write_xml(index, os.path.join(OUTPUT_DIR, "sitemap.xml"))
+    combined = ET.Element("urlset", xmlns=NS)
+    for source in (pages, movies, tv):
+        for url in list(source):
+            combined.append(url)
+    write_xml(combined, os.path.join(OUTPUT_DIR, "sitemap.xml"))
 
     total = len(core_pages) + len(movie_items) + len(tv_items)
-    print(f"Generated sitemap index plus 3 child sitemaps with {total} URLs.")
+    print(f"Generated flat sitemap.xml plus 3 diagnostic child sitemaps with {total} URLs.")
 
 
 if __name__ == "__main__":
