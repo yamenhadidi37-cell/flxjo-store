@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import requests
@@ -64,22 +65,55 @@ def add_url(urlset, loc, now, priority="0.7", changefreq="weekly"):
 def write_xml(root, path):
     xml_str = ET.tostring(root, encoding="utf-8", xml_declaration=True).decode("utf-8")
     xml_str = xml_str.replace("><url>", ">\n  <url>").replace("</url><url>", "</url>\n  <url>")
-    xml_str = xml_str.replace("><sitemap>", ">\n  <sitemap>").replace("</sitemap><sitemap>", "</sitemap>\n  <sitemap>")
-    xml_str = xml_str.replace("</url></urlset>", "</url>\n</urlset>").replace("</sitemap></sitemapindex>", "</sitemap>\n</sitemapindex>")
+    xml_str = xml_str.replace("</url></urlset>", "</url>\n</urlset>")
     with open(path, "w", encoding="utf-8") as file:
         file.write(xml_str)
+
+
+def seo_record(item, media_type, clean_base):
+    is_movie = media_type == "movie"
+    title = item.get("title") or item.get("name") or f"{media_type.title()} {item['id']}"
+    original = item.get("original_title") or item.get("original_name") or title
+    slug = media_slug(item, media_type)
+    route_type = "movie" if is_movie else "tv"
+    route = f"/{route_type}/{item['id']}/{slug}/"
+    year = (item.get("release_date") or item.get("first_air_date") or "")[:4]
+    year_text = f" ({year})" if year else ""
+    overview = (item.get("overview") or "").strip()
+    if len(overview) > 260:
+        overview = overview[:257].rsplit(" ", 1)[0] + "..."
+    kind_ar = "فيلم" if is_movie else "مسلسل"
+    kind_en = "movie" if is_movie else "TV series"
+    ar_title = f"مشاهدة {kind_ar} {title}{year_text} مترجم HD | فلكس جو"
+    en_title = f"Watch {original}{year_text} Full {kind_en} Online HD | FlexJo"
+    ar_desc = (f"شاهد {kind_ar} {title}{year_text} مترجم بجودة HD على فلكس جو. "
+               f"{overview}" if overview else
+               f"شاهد {kind_ar} {title}{year_text} مترجم بجودة HD على منصة فلكس جو.")
+    en_desc = (f"Watch {original}{year_text} online in HD with subtitles on FlexJo. "
+               f"{overview}" if overview else
+               f"Watch {original}{year_text} online in HD with subtitles on FlexJo.")
+    image = item.get("backdrop_path") or item.get("poster_path")
+    image_url = f"https://image.tmdb.org/t/p/w1280{image}" if image else f"{clean_base}/logo.jpg"
+    return {
+        "id": item["id"], "type": route_type, "route": route,
+        "title": title, "originalTitle": original, "year": year,
+        "arTitle": ar_title, "enTitle": en_title,
+        "arDescription": ar_desc[:300], "enDescription": en_desc[:300],
+        "description": overview or en_desc, "image": image_url,
+        "url": f"{clean_base}{route}",
+    }
 
 
 def generate_sitemap():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     clean_base = BASE_URL.rstrip("/")
     now = datetime.now().strftime("%Y-%m-%d")
-
     pages = ET.Element("urlset", xmlns=NS)
     movies = ET.Element("urlset", xmlns=NS)
     tv = ET.Element("urlset", xmlns=NS)
 
-    core_pages = ["/", "/home", "/movie", "/tv", "/anime", "/search", "/history"]
+    # Only indexable content pages. Search and watch history are intentionally excluded.
+    core_pages = ["/", "/home", "/movie", "/tv", "/anime"]
     for page in core_pages:
         loc = f"{clean_base}{page}" if page != "/" else f"{clean_base}/"
         add_url(pages, loc, now, "1.0" if page in ["/", "/home"] else "0.9", "daily")
@@ -87,32 +121,34 @@ def generate_sitemap():
     print(f"Fetching media using key: {TMDB_API_KEY[:5]}***")
     movie_items = fetch_media_items("movie")
     tv_items = fetch_media_items("tv")
+    seo_records = []
 
     for item in movie_items.values():
-        add_url(movies, f"{clean_base}/movie/{item['id']}/{media_slug(item, 'movie')}", now)
+        record = seo_record(item, "movie", clean_base)
+        seo_records.append(record)
+        add_url(movies, record["url"], now)
     for item in tv_items.values():
-        add_url(tv, f"{clean_base}/tv/{item['id']}/{media_slug(item, 'tv')}", now)
+        record = seo_record(item, "tv", clean_base)
+        seo_records.append(record)
+        add_url(tv, record["url"], now)
 
-    # Keep the child maps for diagnostics, but make the main sitemap a
-    # straightforward flat urlset like the format most validators display.
     write_xml(pages, os.path.join(OUTPUT_DIR, "sitemap-pages.xml"))
     write_xml(movies, os.path.join(OUTPUT_DIR, "sitemap-movies.xml"))
     write_xml(tv, os.path.join(OUTPUT_DIR, "sitemap-tv.xml"))
-
     combined = ET.Element("urlset", xmlns=NS)
     for source in (pages, movies, tv):
         for url in list(source):
             combined.append(url)
     write_xml(combined, os.path.join(OUTPUT_DIR, "sitemap.xml"))
 
-    # Plain-text fallback: one absolute URL per line. Google supports this
-    # format and it avoids XML parser/cache issues in some Search Console runs.
     locations = [node.find("loc").text for node in combined if node.find("loc") is not None]
     with open(os.path.join(OUTPUT_DIR, "sitemap.txt"), "w", encoding="utf-8") as file:
         file.write("\n".join(locations) + "\n")
+    with open(os.path.join(OUTPUT_DIR, "seo-media.json"), "w", encoding="utf-8") as file:
+        json.dump(seo_records, file, ensure_ascii=False, indent=2)
 
-    total = len(core_pages) + len(movie_items) + len(tv_items)
-    print(f"Generated flat sitemap.xml, sitemap.txt, and 3 diagnostic child sitemaps with {total} URLs.")
+    total = len(core_pages) + len(seo_records)
+    print(f"Generated indexable sitemap with {total} URLs and {len(seo_records)} prerender records.")
 
 
 if __name__ == "__main__":
