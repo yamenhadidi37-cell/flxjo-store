@@ -163,9 +163,17 @@ export default function SeoHead({
       schemaObj = {
         '@context': 'https://schema.org',
         '@type': 'WebSite',
-        'name': 'FlxJo Cinema',
-        'alternateName': 'فلكس جو',
+        'name': 'فلكس جو',
+        'alternateName': ['FlexJo', 'FlxJo Cinema'],
         'url': baseUrl,
+        'logo': `${baseUrl}/logo.jpg`,
+        'publisher': {
+          '@type': 'Organization',
+          'name': 'فلكس جو',
+          'alternateName': 'FlexJo',
+          'url': baseUrl,
+          'logo': `${baseUrl}/logo.jpg`
+        },
         'description': pageDesc,
         'potentialAction': {
           '@type': 'SearchAction',
