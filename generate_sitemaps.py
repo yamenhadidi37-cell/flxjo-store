@@ -105,8 +105,14 @@ def generate_sitemap():
             combined.append(url)
     write_xml(combined, os.path.join(OUTPUT_DIR, "sitemap.xml"))
 
+    # Plain-text fallback: one absolute URL per line. Google supports this
+    # format and it avoids XML parser/cache issues in some Search Console runs.
+    locations = [node.find("loc").text for node in combined if node.find("loc") is not None]
+    with open(os.path.join(OUTPUT_DIR, "sitemap.txt"), "w", encoding="utf-8") as file:
+        file.write("\n".join(locations) + "\n")
+
     total = len(core_pages) + len(movie_items) + len(tv_items)
-    print(f"Generated flat sitemap.xml plus 3 diagnostic child sitemaps with {total} URLs.")
+    print(f"Generated flat sitemap.xml, sitemap.txt, and 3 diagnostic child sitemaps with {total} URLs.")
 
 
 if __name__ == "__main__":
