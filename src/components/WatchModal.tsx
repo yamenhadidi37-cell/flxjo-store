@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { getTranslations } from '../translations';
 import { getBlockedMediaInfo } from '../lib/blocklist';
+import { getMediaSlug } from '../lib/slugify';
 
 interface WatchModalProps {
   item: MediaItem;
@@ -768,14 +769,13 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
                     {relatedMedia.map((rel) => {
                       const relTitle = rel.title || rel.name || '';
                       const relYear = (rel.release_date || rel.first_air_date || '').substring(0, 4);
+                      const relType = rel.media_type === 'tv' ? 'tv' : 'movie';
+                      const relUrl = `/${relType}/${rel.id}/${getMediaSlug(rel)}/`;
                       return (
-                        <div 
+                        <a
                           key={rel.id} 
-                          onClick={() => {
-                            if (onWatch) {
-                              onWatch(rel);
-                            }
-                          }}
+                          href={relUrl}
+                          aria-label={lang === 'en' ? `View ${relTitle}` : `مشاهدة ${relTitle}`}
                           className={`group relative flex flex-col h-full bg-zinc-950/20 cursor-pointer ${lang === 'en' ? 'text-left' : 'text-right'}`}
                         >
                           <div className="aspect-[2/3] w-full rounded-[1.8rem] overflow-hidden bg-zinc-950 border-2 border-zinc-900/60 group-hover:border-red-600/50 shadow-md group-hover:shadow-xl transition-all duration-300 relative">
@@ -788,7 +788,7 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
                           </div>
                           <h4 className="font-bold text-[11px] text-zinc-200 mt-2 px-1 line-clamp-1 group-hover:text-red-500 transition-colors">{relTitle}</h4>
                           <span className="text-[10px] text-zinc-500 px-1">{relYear || (lang === 'en' ? 'Various' : 'منوعات')}</span>
-                        </div>
+                        </a>
                       );
                     })}
                   </div>
