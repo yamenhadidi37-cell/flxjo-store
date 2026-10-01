@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
+
 Sitemap: https://flexjo.sbs/sitemap.xml
-Sitemap: https://flexjo.sbs/sitemap.txt
