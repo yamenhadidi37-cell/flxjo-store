@@ -55,6 +55,8 @@ const SERVERS: StreamingServer[] = [
   }
 ];
 
+const PLAYBACK_MAINTENANCE_MODE = true;
+
 export default function WatchModal({ item, onClose, onPreferenceChange, onWatch, lang }: WatchModalProps) {
   const blockedInfo = getBlockedMediaInfo(item.id, item.title || item.name);
   const isBlockedShow = blockedInfo !== null;
@@ -67,6 +69,11 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
   
   // New State: Two-stage interface (Detail preview mode first, then playing mode)
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const handleStartPlaying = () => {
+    if (PLAYBACK_MAINTENANCE_MODE) return;
+    setIsPlaying(true);
+  };
 
   // TV specific states
   const [seasons, setSeasons] = useState<TVSeason[]>([]);
@@ -199,7 +206,7 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
   // Record watch session anytime episode or season changes (for TV Shows)
   const handleEpisodeSelect = (episodeNum: number) => {
     setSelectedEpisode(episodeNum);
-    setIsPlaying(true);
+    if (!PLAYBACK_MAINTENANCE_MODE) setIsPlaying(true);
   };
 
   // 4. Construct Iframe Source URL depending on chosen server rules
@@ -509,11 +516,12 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
                     </button>
                   ) : (
                     <button
-                      onClick={() => setIsPlaying(true)}
-                      className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-sm font-black transition-all flex items-center gap-2.5 cursor-pointer shadow-xl shadow-red-600/35 hover:shadow-red-600/50 hover:scale-[1.02] transform"
+                      onClick={handleStartPlaying}
+                      disabled={PLAYBACK_MAINTENANCE_MODE}
+                      className="px-8 py-4 bg-zinc-800 text-zinc-400 rounded-2xl text-sm font-black transition-all flex items-center gap-2.5 cursor-not-allowed opacity-80"
                     >
-                      <Play className="w-5 h-5 fill-current text-white" />
-                      <span>{lang === 'en' ? 'Stream Now 🎥' : 'تشغيل البث الآن 🎥'}</span>
+                      <X className="w-5 h-5 text-amber-400" />
+                      <span>{lang === 'en' ? 'Playback paused during maintenance' : 'التشغيل متوقف مؤقتًا للتحديث'}</span>
                     </button>
                   )}
 
@@ -605,11 +613,12 @@ export default function WatchModal({ item, onClose, onPreferenceChange, onWatch,
               </button>
             ) : (
               <button
-                onClick={() => setIsPlaying(true)}
-                className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/20"
+                onClick={handleStartPlaying}
+                disabled={PLAYBACK_MAINTENANCE_MODE}
+                className="w-full py-3.5 bg-zinc-800 text-zinc-400 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
               >
-                <Play className="w-4 h-4 fill-current text-white" />
-                <span>{lang === 'en' ? 'Stream Now 🎥' : 'تشغيل البث الآن 🎥'}</span>
+                <X className="w-4 h-4 text-amber-400" />
+                <span>{lang === 'en' ? 'Playback paused during maintenance' : 'التشغيل متوقف مؤقتًا للتحديث'}</span>
               </button>
             )}
 
