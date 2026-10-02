@@ -24,6 +24,8 @@ import { fetchWithTimeout, getApiUrl } from './lib/api';
 import { getDaily50 } from './lib/dailySeededSelection';
 import { recordSearchQueryInCookie, getUserCookiePreferences, getCookieConsent, clearUserTrackingData, COOKIE_POLICY_VERSION } from './lib/cookieManager';
 
+const SITE_MAINTENANCE_MODE = true;
+
 function getOrCreateUserId(): string {
   let uid = localStorage.getItem('flexjo_user_id');
   if (!uid) {
@@ -911,6 +913,14 @@ export default function App() {
           >
             <X className="w-3 h-3" />
           </button>
+        </div>
+      )}
+
+      {SITE_MAINTENANCE_MODE && (
+        <div className="bg-amber-500/95 text-black text-[11px] sm:text-xs font-black py-2 px-4 text-center relative z-[55] shadow-md">
+          {lang === 'en'
+            ? 'The site is under maintenance. Browsing remains available; playback is temporarily paused.'
+            : 'الموقع قيد التحديث. تصفح الصفحات متاح، لكن التشغيل متوقف مؤقتًا.'}
         </div>
       )}
 
