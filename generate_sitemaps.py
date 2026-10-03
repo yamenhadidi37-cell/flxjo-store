@@ -7,9 +7,11 @@ from datetime import datetime
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "c714ec95383c51abcde6afdf2e1571b9")
 BASE_URL = os.environ.get("SITE_BASE_URL", "https://flexjo.sbs")
+BLOCKLIST_API_URL = os.environ.get("BLOCKLIST_API_URL", "")
 OUTPUT_DIR = "public"
 MAX_PAGES = 20
 NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
+MANUALLY_BLOCKED_IDS = set()
 
 
 def slugify(text):
@@ -65,7 +67,7 @@ def fetch_media_items(media_type):
                 print(f"Failed to fetch {media_type} page {page}: Status {response.status_code}")
                 continue
             for item in response.json().get("results", []):
-                if item.get("id") and not is_explicit_content(item):
+                if item.get("id") and item["id"] not in MANUALLY_BLOCKED_IDS and not is_explicit_content(item):
                     items[item["id"]] = item
         except Exception as exc:
             print(f"Error fetching {media_type} page {page}: {exc}")
@@ -127,6 +129,14 @@ def seo_record(item, media_type, clean_base):
 def generate_sitemap():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     clean_base = BASE_URL.rstrip("/")
+    if BLOCKLIST_API_URL:
+        try:
+            response = requests.get(BLOCKLIST_API_URL, timeout=10)
+            if response.ok:
+                MANUALLY_BLOCKED_IDS.update(int(item["id"]) for item in response.json().get("items", []) if str(item.get("id", "")).isdigit())
+                print(f"Loaded {len(MANUALLY_BLOCKED_IDS)} manually blocked media IDs.")
+        except Exception as exc:
+            print(f"Could not load remote media blocklist: {exc}")
     now = datetime.now().strftime("%Y-%m-%d")
     pages = ET.Element("urlset", xmlns=NS)
     movies = ET.Element("urlset", xmlns=NS)
