@@ -13,7 +13,7 @@ MAX_PAGES = 20
 NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
 MANUALLY_BLOCKED_IDS = set()
 # Manually reviewed explicit titles that must never enter public SEO files.
-EXPLICIT_MEDIA_IDS = {241002}
+EXPLICIT_MEDIA_IDS = {241002, 95897, 9323}
 
 
 def slugify(text):

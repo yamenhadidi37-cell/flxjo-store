@@ -5,7 +5,7 @@ import { normalizeQuery, calculateMatchScore, parseDirectQuery } from './searchN
 
 export const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 // Manually reviewed titles that must stay hidden even when TMDB metadata is incomplete.
-export const EXPLICIT_MEDIA_IDS = new Set<number>([241002]);
+export const EXPLICIT_MEDIA_IDS = new Set<number>([241002, 95897, 9323]);
 let remoteBlockedIds = new Set<number>();
 
 export async function loadRemoteBlockedMedia(): Promise<void> {
