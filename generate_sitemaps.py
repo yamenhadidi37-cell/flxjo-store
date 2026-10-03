@@ -30,6 +30,26 @@ def media_slug(item, media_type):
     return str(item.get("id", "media"))
 
 
+def is_explicit_content(item):
+    """Exclude TMDB-adult and clearly explicit titles from public SEO files.
+
+    TMDB metadata cannot identify every individual scene, so this is a
+    conservative metadata filter rather than a complete content review.
+    """
+    if item.get("adult") is True:
+        return True
+    text = " ".join(str(item.get(key) or "") for key in (
+        "title", "name", "original_title", "original_name", "overview"
+    )).lower()
+    explicit_terms = (
+        "porn", "xxx", "erotic", "nudity", "nude", "nsfw", "adult movie",
+        "erotica", "striptease", "playboy", "orgasm", "naked", "uncut",
+        "half-naked", "scantily", "boudoir", "إباحية", "اباحي", "عري",
+        "عاري", "جنس", "جنسي", "بورن", "سكس", "للكبار فقط", "+18"
+    )
+    return any(term in text for term in explicit_terms)
+
+
 def fetch_media_items(media_type):
     items = {}
     if not TMDB_API_KEY:
@@ -45,7 +65,7 @@ def fetch_media_items(media_type):
                 print(f"Failed to fetch {media_type} page {page}: Status {response.status_code}")
                 continue
             for item in response.json().get("results", []):
-                if item.get("id"):
+                if item.get("id") and not is_explicit_content(item):
                     items[item["id"]] = item
         except Exception as exc:
             print(f"Error fetching {media_type} page {page}: {exc}")
