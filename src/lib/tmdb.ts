@@ -4,6 +4,8 @@ import { fetchWithTimeout, getApiUrl } from './api';
 import { normalizeQuery, calculateMatchScore, parseDirectQuery } from './searchNormalization';
 
 export const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
+// Manually reviewed titles that must stay hidden even when TMDB metadata is incomplete.
+export const EXPLICIT_MEDIA_IDS = new Set<number>([241002]);
 let remoteBlockedIds = new Set<number>();
 
 export async function loadRemoteBlockedMedia(): Promise<void> {
@@ -23,7 +25,7 @@ export async function loadRemoteBlockedMedia(): Promise<void> {
 export function isAdultContent(item: any): boolean {
   if (!item) return false;
 
-  if (remoteBlockedIds.has(Number(item.id))) return true;
+  if (remoteBlockedIds.has(Number(item.id)) || EXPLICIT_MEDIA_IDS.has(Number(item.id))) return true;
 
   // 1. Native TMDB adult classification
   if (item.adult === true) return true;

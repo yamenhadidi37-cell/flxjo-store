@@ -12,6 +12,8 @@ OUTPUT_DIR = "public"
 MAX_PAGES = 20
 NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
 MANUALLY_BLOCKED_IDS = set()
+# Manually reviewed explicit titles that must never enter public SEO files.
+EXPLICIT_MEDIA_IDS = {241002}
 
 
 def slugify(text):
@@ -67,7 +69,7 @@ def fetch_media_items(media_type):
                 print(f"Failed to fetch {media_type} page {page}: Status {response.status_code}")
                 continue
             for item in response.json().get("results", []):
-                if item.get("id") and item["id"] not in MANUALLY_BLOCKED_IDS and not is_explicit_content(item):
+                if item.get("id") and item["id"] not in MANUALLY_BLOCKED_IDS and item["id"] not in EXPLICIT_MEDIA_IDS and not is_explicit_content(item):
                     items[item["id"]] = item
         except Exception as exc:
             print(f"Error fetching {media_type} page {page}: {exc}")
