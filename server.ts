@@ -28,6 +28,30 @@ async function startServer() {
 
   // --- Start of Server-Side Database Logging (for Admin Dashboard) ---
   const LOGS_FILE = path.join(process.cwd(), 'data', 'admin_logs.json');
+  const MEDIA_BLOCKLIST_FILE = path.join(process.cwd(), 'data', 'media_blocklist.json');
+
+  interface MediaBlockEntry {
+    id: number;
+    mediaType: 'movie' | 'tv';
+    title?: string;
+    reason?: string;
+    createdAt: string;
+  }
+
+  function getMediaBlocklist(): MediaBlockEntry[] {
+    try {
+      if (!fs.existsSync(MEDIA_BLOCKLIST_FILE)) return [];
+      const parsed = JSON.parse(fs.readFileSync(MEDIA_BLOCKLIST_FILE, 'utf-8'));
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveMediaBlocklist(entries: MediaBlockEntry[]) {
+    fs.mkdirSync(path.dirname(MEDIA_BLOCKLIST_FILE), { recursive: true });
+    fs.writeFileSync(MEDIA_BLOCKLIST_FILE, JSON.stringify(entries, null, 2), 'utf-8');
+  }
 
   interface VisitLog {
     ip: string;
@@ -1425,6 +1449,42 @@ async function startServer() {
       telegramChatId: TELEGRAM_CHAT_ID,
       telegramTokenConfigured: !!TELEGRAM_TOKEN
     });
+  });
+
+  // Public list used by the frontend to hide manually blocked titles everywhere.
+  app.get('/api/blocked-media', (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ items: getMediaBlocklist().map(({ id, mediaType }) => ({ id, mediaType })) });
+  });
+
+  app.get('/api/admin/blocked-media', (req, res) => {
+    const token = req.query.token || req.headers['authorization'];
+    if (token !== ADMIN_SESSION_TOKEN && token !== `Bearer ${ADMIN_SESSION_TOKEN}`) return res.status(401).json({ error: 'Unauthorized access' });
+    res.json({ items: getMediaBlocklist() });
+  });
+
+  app.post('/api/admin/block-media', (req, res) => {
+    const token = req.headers['authorization'];
+    if (token !== ADMIN_SESSION_TOKEN && token !== `Bearer ${ADMIN_SESSION_TOKEN}`) return res.status(401).json({ error: 'Unauthorized access' });
+    const id = Number(req.body?.id);
+    const mediaType = req.body?.mediaType === 'tv' ? 'tv' : 'movie';
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'A valid TMDB ID is required' });
+    const entries = getMediaBlocklist();
+    if (!entries.some((entry) => entry.id === id && entry.mediaType === mediaType)) {
+      entries.push({ id, mediaType, title: String(req.body?.title || '').slice(0, 200), reason: String(req.body?.reason || 'Explicit or unsuitable content').slice(0, 500), createdAt: new Date().toISOString() });
+      saveMediaBlocklist(entries);
+    }
+    res.json({ success: true, items: getMediaBlocklist() });
+  });
+
+  app.delete('/api/admin/block-media/:mediaType/:id', (req, res) => {
+    const token = req.headers['authorization'];
+    if (token !== ADMIN_SESSION_TOKEN && token !== `Bearer ${ADMIN_SESSION_TOKEN}`) return res.status(401).json({ error: 'Unauthorized access' });
+    const id = Number(req.params.id);
+    const mediaType = req.params.mediaType === 'tv' ? 'tv' : 'movie';
+    const next = getMediaBlocklist().filter((entry) => !(entry.id === id && entry.mediaType === mediaType));
+    saveMediaBlocklist(next);
+    res.json({ success: true, items: next });
   });
 
   app.post('/api/admin/telegram-settings', (req, res) => {

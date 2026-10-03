@@ -4,12 +4,26 @@ import { fetchWithTimeout, getApiUrl } from './api';
 import { normalizeQuery, calculateMatchScore, parseDirectQuery } from './searchNormalization';
 
 export const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
+let remoteBlockedIds = new Set<number>();
+
+export async function loadRemoteBlockedMedia(): Promise<void> {
+  try {
+    const response = await fetchWithTimeout(getApiUrl('/api/blocked-media'), {}, 5000);
+    if (!response.ok) return;
+    const data = await response.json();
+    remoteBlockedIds = new Set((Array.isArray(data.items) ? data.items : []).map((item: any) => Number(item.id)).filter(Number.isFinite));
+  } catch {
+    // The site remains usable if the optional admin API is unavailable.
+  }
+}
 
 /**
  * Checks if a media item contains adult or explicit sexual content.
  */
 export function isAdultContent(item: any): boolean {
   if (!item) return false;
+
+  if (remoteBlockedIds.has(Number(item.id))) return true;
 
   // 1. Native TMDB adult classification
   if (item.adult === true) return true;
@@ -73,6 +87,18 @@ export function filterAdultContent(items: MediaItem[]): MediaItem[] {
     }
     return item;
   });
+}
+
+export function isExplicitAnime(item: any): boolean {
+  if (!item) return false;
+  const text = [item.title, item.name, item.original_title, item.original_name, item.overview]
+    .filter(Boolean).join(' ').toLowerCase();
+  const animeExplicitTerms = [
+    'hentai', 'ecchi', 'adult animation', 'r18', 'r-18', '18禁', 'エロ', 'エッチ',
+    'ero anime', 'lewd', 'pornographic', 'porn', 'xxx', 'nudity', 'nude',
+    'عري', 'عاري', 'إباحية', 'اباحي', 'جنسي', 'جنس', 'للكبار فقط', '+18'
+  ];
+  return item.adult === true || animeExplicitTerms.some((term) => text.includes(term));
 }
 
 // Pre-defined fallback names for genres in Arabic, just in case
@@ -521,7 +547,7 @@ export async function getAnimeList(page = 1): Promise<MediaItem[]> {
   }));
 
   const merged = [...animeMovies, ...animeSeries];
-  const filtered = filterAdultContent(merged);
+  const filtered = filterAdultContent(merged).filter((item) => !isExplicitAnime(item));
   return filtered.length > 0 ? filtered.sort((a, b) => b.popularity - a.popularity) : [];
 }
 

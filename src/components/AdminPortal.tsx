@@ -26,6 +26,12 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
   const [promoQuery, setPromoQuery] = useState('');
   const [promoStatus, setPromoStatus] = useState<string | null>(null);
   const [sendingPromo, setSendingPromo] = useState(false);
+  const [blockedMedia, setBlockedMedia] = useState<any[]>([]);
+  const [blockMediaId, setBlockMediaId] = useState('');
+  const [blockMediaType, setBlockMediaType] = useState<'movie' | 'tv'>('movie');
+  const [blockMediaTitle, setBlockMediaTitle] = useState('');
+  const [blockMediaReason, setBlockMediaReason] = useState('محتوى غير مناسب أو صريح');
+  const [blockMediaStatus, setBlockMediaStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const storedToken = sessionStorage.getItem('flexjo_admin_token');
@@ -33,6 +39,7 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
       setIsAuthenticated(true);
       setAuthToken(storedToken);
       loadAdminStats(storedToken);
+      loadBlockedMedia(storedToken);
     }
   }, []);
 
@@ -51,11 +58,56 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
         setAuthToken(data.token);
         sessionStorage.setItem('flexjo_admin_token', data.token);
         loadAdminStats(data.token);
+        loadBlockedMedia(data.token);
       } else {
         setPasswordError(data.error || (lang === 'en' ? 'Incorrect Password!' : 'كلمة المرور خاطئة!'));
       }
     } catch (err) {
       setPasswordError(lang === 'en' ? 'Server connection error' : 'خطأ في الاتصال بالخادم');
+    }
+  };
+
+  const loadBlockedMedia = async (token: string) => {
+    try {
+      const res = await fetch(getApiUrl('/api/admin/blocked-media'), { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setBlockedMedia((await res.json()).items || []);
+    } catch {
+      setBlockMediaStatus(lang === 'en' ? 'Could not load blocked titles.' : 'تعذر تحميل قائمة الأعمال المحظورة.');
+    }
+  };
+
+  const handleBlockMedia = async () => {
+    const id = Number(blockMediaId);
+    if (!Number.isInteger(id) || id <= 0) {
+      setBlockMediaStatus(lang === 'en' ? 'Enter a valid TMDB ID.' : 'اكتب رقم TMDB صحيح.');
+      return;
+    }
+    try {
+      const res = await fetch(getApiUrl('/api/admin/block-media'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ id, mediaType: blockMediaType, title: blockMediaTitle, reason: blockMediaReason })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setBlockedMedia(data.items || []);
+      setBlockMediaId('');
+      setBlockMediaTitle('');
+      setBlockMediaStatus(lang === 'en' ? 'Title hidden from the site and sitemap.' : 'تم إخفاء العمل من الموقع والـSitemap.');
+    } catch {
+      setBlockMediaStatus(lang === 'en' ? 'Could not save the blocked title.' : 'تعذر حفظ العمل المحظور.');
+    }
+  };
+
+  const handleUnblockMedia = async (entry: any) => {
+    try {
+      const res = await fetch(getApiUrl(`/api/admin/block-media/${entry.mediaType}/${entry.id}`), {
+        method: 'DELETE', headers: { Authorization: `Bearer ${authToken}` }
+      });
+      const data = await res.json();
+      if (res.ok) setBlockedMedia(data.items || []);
+    } catch {
+      setBlockMediaStatus(lang === 'en' ? 'Could not unblock the title.' : 'تعذر إلغاء حظر العمل.');
     }
   };
 
@@ -667,6 +719,36 @@ export default function AdminPortal({ lang }: AdminPortalProps) {
                       )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              {/* Manual content moderation */}
+              <div className="mt-8 bg-zinc-900/30 border border-amber-500/20 p-6 rounded-3xl space-y-4">
+                <h3 className="text-base font-black border-b border-zinc-900 pb-2 flex items-center gap-2">
+                  <span>🛡️</span>
+                  <span>{lang === 'en' ? 'Hide unsuitable movie or anime' : 'حظر وإخفاء فيلم أو أنمي غير مناسب'}</span>
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  {lang === 'en' ? 'This hides the TMDB title from lists, search, details and public sitemaps. It does not delete it from TMDB.' : 'هذا يخفي العمل من القوائم والبحث والصفحة والخريطة العامة. لا يحذفه من TMDB نفسه.'}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                  <input value={blockMediaId} onChange={(e) => setBlockMediaId(e.target.value)} placeholder="TMDB ID" inputMode="numeric" className="bg-zinc-950/60 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500" />
+                  <select value={blockMediaType} onChange={(e) => setBlockMediaType(e.target.value as 'movie' | 'tv')} className="bg-zinc-950/60 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
+                    <option value="movie">فيلم / Movie</option>
+                    <option value="tv">مسلسل أو أنمي / TV</option>
+                  </select>
+                  <input value={blockMediaTitle} onChange={(e) => setBlockMediaTitle(e.target.value)} placeholder="اسم العمل (اختياري)" className="bg-zinc-950/60 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500" />
+                  <button onClick={handleBlockMedia} className="bg-amber-600 hover:bg-amber-500 text-black font-black rounded-xl text-xs px-3 py-2.5 cursor-pointer">{lang === 'en' ? 'Hide title' : 'إخفاء العمل'}</button>
+                </div>
+                <input value={blockMediaReason} onChange={(e) => setBlockMediaReason(e.target.value)} placeholder="سبب الحظر" className="w-full bg-zinc-950/60 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500" />
+                {blockMediaStatus && <p className="text-xs text-amber-300">{blockMediaStatus}</p>}
+                <div className="flex flex-wrap gap-2">
+                  {blockedMedia.map((entry) => (
+                    <button key={`${entry.mediaType}-${entry.id}`} onClick={() => handleUnblockMedia(entry)} title="إلغاء الحظر" className="bg-red-950/40 border border-red-500/20 text-red-300 rounded-lg px-3 py-2 text-[11px] cursor-pointer hover:bg-red-900/50">
+                      {entry.title || 'عمل'} · {entry.mediaType} #{entry.id} ×
+                    </button>
+                  ))}
+                  {blockedMedia.length === 0 && <span className="text-[11px] text-zinc-600">لا توجد أعمال محظورة يدويًا</span>}
                 </div>
               </div>
 

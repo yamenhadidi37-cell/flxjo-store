@@ -11,7 +11,7 @@ import SeoHead from './components/SeoHead';
 import DiscoveryPanel, { DiscoveryFilters } from './components/DiscoveryPanel';
 import AdminPortal from './components/AdminPortal';
 import { MediaItem, WatchHistoryItem } from './types';
-import { getTrendingMedia, searchMedia, getAnimeList, getYangoPlayMedia, getBackdropUrl, getPosterUrl, getMediaByGenre, detectUserCountry, getTop10ByCountry, getMovieDetails, getTVShowDetails } from './lib/tmdb';
+import { getTrendingMedia, searchMedia, getAnimeList, getYangoPlayMedia, getBackdropUrl, getPosterUrl, getMediaByGenre, detectUserCountry, getTop10ByCountry, getMovieDetails, getTVShowDetails, loadRemoteBlockedMedia } from './lib/tmdb';
 import { rankMediaItems, getWatchHistory, clearWatchHistory, getFavoriteItems } from './lib/algorithm';
 import { 
   Play, Sparkles, AlertCircle, Star, Flame, Film, Tv, Clock, 
@@ -498,6 +498,7 @@ export default function App() {
       setLoadingCatalog(true);
       setLoadingTop10(true);
       try {
+        await loadRemoteBlockedMedia();
         const [t1, a1, y1] = await Promise.all([
           getTrendingMedia(1),
           getAnimeList(1),

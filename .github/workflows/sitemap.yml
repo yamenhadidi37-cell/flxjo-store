@@ -27,6 +27,7 @@ jobs:
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           SITE_BASE_URL: "https://flexjo.sbs"
+          BLOCKLIST_API_URL: "https://flxjo-api.onrender.com/api/blocked-media"
         run: python generate_sitemaps.py
 
       - name: Commit and push generated sitemaps to repository
