@@ -10,10 +10,7 @@ export const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
  */
 export function isAdultContent(item: any): boolean {
   if (!item) return false;
-  
-  // Fulfill user request to never completely hide blocked/restricted Islamic-themed or censored media (so they display with custom warnings instead of silent omission)
-  if (getBlockedMediaInfo(item.id, item.title || item.name)) return false;
-  
+
   // 1. Native TMDB adult classification
   if (item.adult === true) return true;
   
@@ -42,15 +39,22 @@ export function isAdultContent(item: any): boolean {
   
   const title = (item.title || item.name || '').toLowerCase();
   const overview = (item.overview || '').toLowerCase();
+  const keywords = Array.isArray(item.keywords?.keywords)
+    ? item.keywords.keywords.map((keyword: any) => String(keyword.name || '').toLowerCase())
+    : [];
+  const searchableText = `${title} ${overview} ${keywords.join(' ')}`;
   
   for (const kw of adultKeywords) {
-    if (title.includes(kw) || overview.includes(kw)) {
+    if (searchableText.includes(kw)) {
       // Precise boundaries to prevent false positives (e.g. "section", "essex", "sexuality" is usually okay, but "sex" is dangerous)
       if (kw === 'sex' && !(/\bsex\b/.test(title) || /\bsex\b/.test(overview))) continue;
       if (kw === 'nude' && !(/\bnude\b/.test(title) || /\bnude\b/.test(overview))) continue;
       return true;
     }
   }
+
+  // Explicit sexual material is omitted even if another blocklist entry exists.
+  if (getBlockedMediaInfo(item.id, item.title || item.name)) return false;
   
   return false;
 }
