@@ -5,7 +5,7 @@ const apiKey = 'AIzaSyCucLj9W843sJXwhlfVsi15soRyq29wkdU';
 const collection = 'vip_media';
 const publicDir = new URL('../public/', import.meta.url);
 const output = new URL('sitemap.xml', publicDir);
-const origin = process.env.SITE_ORIGIN || 'https://flexjo.sbs';
+const origin = process.env.SITE_ORIGIN || 'https://flexjo-mkadsukx.manus.space';
 const chunkSize = 500;
 
 function typedValue(value) {
@@ -128,6 +128,7 @@ async function main() {
     chunks.push(urls.slice(index, index + chunkSize));
   }
   await writeFile(output, renderUrlset(urls));
+  await writeFile(new URL('manus-sitemap.xml', publicDir), renderUrlset(urls));
   await writeFile(new URL('sitemap-index.xml', publicDir), renderIndex(chunks.length));
   await writeFile(new URL('sitemap.txt', publicDir), `${urls.map((item) => `${origin}${item.path}`).join('\n')}\n`);
   await Promise.all(chunks.map((chunk, index) => writeFile(new URL(`sitemap-${index + 1}.xml`, publicDir), renderUrlset(chunk))));
