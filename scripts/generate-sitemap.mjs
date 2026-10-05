@@ -1,10 +1,12 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 
 const projectId = 'kpro-a1c5d';
 const apiKey = 'AIzaSyCucLj9W843sJXwhlfVsi15soRyq29wkdU';
 const collection = 'vip_media';
-const output = new URL('../public/sitemap.xml', import.meta.url);
+const publicDir = new URL('../public/', import.meta.url);
+const output = new URL('sitemap.xml', publicDir);
 const origin = process.env.SITE_ORIGIN || 'https://flexjo.sbs';
+const chunkSize = 500;
 
 function typedValue(value) {
   if (!value || typeof value !== 'object') return value;
@@ -38,18 +40,59 @@ async function fetchAllMedia() {
   return documents;
 }
 
-function addUrl(lines, path, priority, changefreq) {
-  lines.push('  <url>');
-  lines.push(`    <loc>${xmlEscape(`${origin}${path}`)}</loc>`);
-  lines.push(`    <lastmod>${new Date().toISOString().slice(0, 10)}</lastmod>`);
-  lines.push(`    <changefreq>${changefreq}</changefreq>`);
-  lines.push(`    <priority>${priority}</priority>`);
-  lines.push('  </url>');
+function addUrl(urls, path, priority, changefreq) {
+  urls.push({ path, priority, changefreq });
+}
+
+function renderUrlset(urls) {
+  const today = new Date().toISOString().slice(0, 10);
+  const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'];
+  for (const item of urls) {
+    lines.push('  <url>');
+    lines.push(`    <loc>${xmlEscape(`${origin}${item.path}`)}</loc>`);
+    lines.push(`    <lastmod>${today}</lastmod>`);
+    lines.push(`    <changefreq>${item.changefreq}</changefreq>`);
+    lines.push(`    <priority>${item.priority}</priority>`);
+    lines.push('  </url>');
+  }
+  lines.push('</urlset>');
+  return `${lines.join('\n')}\n`;
+}
+
+function renderIndex(chunkCount) {
+  const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'];
+  const today = new Date().toISOString().slice(0, 10);
+  for (let index = 1; index <= chunkCount; index += 1) {
+    lines.push('  <sitemap>');
+    lines.push(`    <loc>${xmlEscape(`${origin}/sitemap-${index}.xml`)}</loc>`);
+    lines.push(`    <lastmod>${today}</lastmod>`);
+    lines.push('  </sitemap>');
+  }
+  lines.push('</sitemapindex>');
+  return `${lines.join('\n')}\n`;
+}
+
+async function readPreviousUrls() {
+  try {
+    const previous = await readFile(output, 'utf8');
+    return [...previous.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => ({
+      path: match[1].startsWith(origin) ? match[1].slice(origin.length) : match[1],
+      priority: '0.5',
+      changefreq: 'weekly',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function removeOldChunks() {
+  const files = await readdir(publicDir);
+  await Promise.all(files.filter((name) => /^sitemap-\d+\.xml$/.test(name)).map((name) => unlink(new URL(name, publicDir))));
 }
 
 async function main() {
-  const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'];
-  [['/', '1.0', 'daily'], ['/home', '1.0', 'daily'], ['/movies', '0.9', 'daily'], ['/series', '0.9', 'daily'], ['/live', '0.8', 'daily'], ['/folders', '0.7', 'weekly'], ['/watchlist', '0.4', 'weekly']].forEach(([path, priority, changefreq]) => addUrl(lines, path, priority, changefreq));
+  const urls = [];
+  [['/', '1.0', 'daily'], ['/home', '1.0', 'daily'], ['/movies', '0.9', 'daily'], ['/series', '0.9', 'daily'], ['/live', '0.8', 'daily'], ['/folders', '0.7', 'weekly'], ['/watchlist', '0.4', 'weekly']].forEach(([path, priority, changefreq]) => addUrl(urls, path, priority, changefreq));
 
   try {
     const documents = await fetchAllMedia();
@@ -60,31 +103,35 @@ async function main() {
       if (fields.hidden === true) continue;
       const id = document.name?.split('/').pop();
       if (!id) continue;
-      addUrl(lines, `/media/${encodeURIComponent(id)}`, fields.type === 'movie' ? '0.8' : '0.85', 'weekly');
+      addUrl(urls, `/media/${encodeURIComponent(id)}`, fields.type === 'movie' ? '0.8' : '0.85', 'weekly');
       mediaCount += 1;
       const episodes = Array.isArray(fields.episodes) ? fields.episodes : [];
       episodes.forEach((episode, index) => {
         if (episode?.hidden === true) return;
-        addUrl(lines, `/watch/${encodeURIComponent(id)}/episode/${index + 1}`, '0.7', 'monthly');
+        addUrl(urls, `/watch/${encodeURIComponent(id)}/episode/${index + 1}`, '0.7', 'monthly');
         episodeCount += 1;
       });
     }
     console.log(`sitemap: ${mediaCount} media URLs + ${episodeCount} episode URLs`);
   } catch (error) {
-    console.warn(`sitemap: Firestore unavailable (${error.message}); keeping the previous static sitemap`);
-    try {
-      const previous = await readFile(output, 'utf8');
-      await mkdir(new URL('../public', import.meta.url), { recursive: true });
-      await writeFile(output, previous);
-      return;
-    } catch {
-      // Continue with static routes if no previous file exists.
+    console.warn(`sitemap: Firestore unavailable (${error.message}); keeping previous URLs`);
+    const previous = await readPreviousUrls();
+    if (previous.length > 0) {
+      urls.length = 0;
+      urls.push(...previous);
     }
   }
 
-  lines.push('</urlset>');
-  await mkdir(new URL('../public', import.meta.url), { recursive: true });
-  await writeFile(output, `${lines.join('\n')}\n`);
+  await removeOldChunks();
+  const chunks = [];
+  for (let index = 0; index < urls.length; index += chunkSize) {
+    chunks.push(urls.slice(index, index + chunkSize));
+  }
+  await writeFile(output, renderUrlset(urls));
+  await writeFile(new URL('sitemap-index.xml', publicDir), renderIndex(chunks.length));
+  await writeFile(new URL('sitemap.txt', publicDir), `${urls.map((item) => `${origin}${item.path}`).join('\n')}\n`);
+  await Promise.all(chunks.map((chunk, index) => writeFile(new URL(`sitemap-${index + 1}.xml`, publicDir), renderUrlset(chunk))));
+  console.log(`sitemap: wrote ${urls.length} URLs, ${chunks.length} XML chunks, sitemap-index.xml and sitemap.txt`);
 }
 
 await main();
