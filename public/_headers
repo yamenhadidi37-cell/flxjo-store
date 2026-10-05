@@ -1,0 +1,24 @@
+/sitemap.xml
+  Content-Type: text/xml; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+
+/sitemap.xml/
+  Content-Type: text/xml; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+
+/sitemap-index.xml
+  Content-Type: text/xml; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+
+/sitemap-*.xml
+  Content-Type: text/xml; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+
+/manus-sitemap.xml
+  Content-Type: text/xml; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
