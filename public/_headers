@@ -22,3 +22,8 @@
   Content-Type: text/xml; charset=utf-8
   Cache-Control: no-cache
   X-Content-Type-Options: nosniff
+
+/sitemap.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
