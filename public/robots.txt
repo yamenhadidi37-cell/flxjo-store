@@ -3,3 +3,4 @@ Allow: /
 Disallow: /api/
 Sitemap: https://flexjo.sbs/sitemap.txt
 Sitemap: https://flexjo.sbs/sitemap.xml
+Sitemap: https://flexjo.sbs/manus-sitemap.xml
