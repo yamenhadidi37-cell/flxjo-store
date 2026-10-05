@@ -5,11 +5,9 @@
     <title>Loading…</title>
     <script>
       (function () {
-        var base = window.location.hostname.endsWith('.github.io') ? '/flxjo-store/' : '/';
-        var path = window.location.pathname;
-        var route = path.indexOf(base) === 0 ? path.slice(base.length) : path.replace(/^\/+/, '');
+        var path = window.location.pathname.replace(/^\/+/, '');
         var query = window.location.search.replace(/^\?/, '&');
-        var target = base + '?/' + route + query + window.location.hash;
+        var target = '/?/' + path + query + window.location.hash;
         window.location.replace(target);
       })();
     </script>
