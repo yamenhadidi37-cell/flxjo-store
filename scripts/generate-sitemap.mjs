@@ -5,7 +5,7 @@ const apiKey = 'AIzaSyCucLj9W843sJXwhlfVsi15soRyq29wkdU';
 const collection = 'vip_media';
 const publicDir = new URL('../public/', import.meta.url);
 const output = new URL('sitemap.xml', publicDir);
-const origin = process.env.SITE_ORIGIN || 'https://flxjo-store.vercel.app';
+const origin = process.env.SITE_ORIGIN || 'https://flexjo.sbs';
 const chunkSize = 500;
 
 function typedValue(value) {
@@ -75,11 +75,15 @@ function renderIndex(chunkCount) {
 async function readPreviousUrls() {
   try {
     const previous = await readFile(output, 'utf8');
-    return [...previous.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => ({
-      path: match[1].startsWith(origin) ? match[1].slice(origin.length) : match[1],
-      priority: '0.5',
-      changefreq: 'weekly',
-    }));
+    return [...previous.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => {
+      const value = match[1];
+      try {
+        const parsed = new URL(value);
+        return { path: `${parsed.pathname}${parsed.search}${parsed.hash}`, priority: '0.5', changefreq: 'weekly' };
+      } catch {
+        return { path: value.startsWith('/') ? value : `/${value}`, priority: '0.5', changefreq: 'weekly' };
+      }
+    });
   } catch {
     return [];
   }
