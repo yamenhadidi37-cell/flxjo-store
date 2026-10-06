@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Sitemap: https://www.flexjo.sbs/sitemap.xml
+Sitemap: https://flxjo-store.vercel.app/sitemap.xml

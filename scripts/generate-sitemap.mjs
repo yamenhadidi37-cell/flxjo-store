@@ -5,7 +5,7 @@ const apiKey = 'AIzaSyCucLj9W843sJXwhlfVsi15soRyq29wkdU';
 const collection = 'vip_media';
 const publicDir = new URL('../public/', import.meta.url);
 const output = new URL('sitemap.xml', publicDir);
-const origin = process.env.SITE_ORIGIN || 'https://www.flexjo.sbs';
+const origin = process.env.SITE_ORIGIN || 'https://flxjo-store.vercel.app';
 const chunkSize = 500;
 
 function typedValue(value) {
