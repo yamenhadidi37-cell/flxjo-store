@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Sitemap: https://flexjo.sbs/sitemap.xml
+Sitemap: https://flexjo.sbs/flexjo-sitemap.xml

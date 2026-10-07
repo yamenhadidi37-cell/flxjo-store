@@ -132,6 +132,7 @@ async function main() {
     chunks.push(urls.slice(index, index + chunkSize));
   }
   await writeFile(output, renderUrlset(urls));
+  await writeFile(new URL('flexjo-sitemap.xml', publicDir), renderUrlset(urls));
   await writeFile(new URL('manus-sitemap.xml', publicDir), renderUrlset(urls));
   await writeFile(new URL('sitemap-index.xml', publicDir), renderIndex(chunks.length));
   await writeFile(new URL('sitemap.txt', publicDir), `${urls.map((item) => `${origin}${item.path}`).join('\n')}\n`);
