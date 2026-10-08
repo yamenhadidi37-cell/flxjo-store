@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+# صفحة تحميل التطبيق تستخدم noindex ولا تُضاف إلى Sitemap.
+Allow: /app
 Sitemap: https://flexjo.sbs/flexjo-sitemap.xml

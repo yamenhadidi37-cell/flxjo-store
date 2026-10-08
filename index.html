@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      if (window.location.pathname === '/app') {
+        document.write('<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">');
+        document.write('<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet">');
+      }
+    </script>
     <meta name="google-site-verification" content="PSep2E_mJOx5Jv0NToIpLJm7j9Wmc_Ie306JTosxm5s" />
 <meta name="google-site-verification" content="1MvJ4bAggCt_TwT_aqv3tDpsbN1IQuar5Ypn6R6s_DA" />
     <meta name="google-site-verification" content="R5IP-9c2PoL3WVmL_WrBK5tVNyvrVXFiauQXkGGiWcM" />

@@ -20,6 +20,7 @@ import { EpisodePageView } from './components/EpisodePageView';
 import { WatchlistView } from './components/WatchlistView';
 import { FirebaseModal } from './components/FirebaseModal';
 import { Footer } from './components/Footer';
+import { AppDownloadPage } from './components/AppDownloadPage';
 
 export default function App() {
   // Navigation & Routing State
@@ -190,6 +191,8 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [syncFromPath]);
 
+  const isAppDownloadPage = window.location.pathname === '/app';
+
   // Save watchlist to localStorage
   useEffect(() => {
     localStorage.setItem('flexjo_watchlist', JSON.stringify(watchlistIds));
@@ -295,6 +298,10 @@ export default function App() {
   const bookmarkedItems = useMemo(() => {
     return displayItems.filter((item) => watchlistIds.includes(item.id));
   }, [displayItems, watchlistIds]);
+
+  if (isAppDownloadPage) {
+    return <AppDownloadPage />;
+  }
 
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-amber-400 selection:text-black">
