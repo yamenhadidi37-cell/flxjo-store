@@ -191,7 +191,7 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [syncFromPath]);
 
-  const isAppDownloadPage = window.location.pathname === '/app';
+  const isAppDownloadPage = window.location.pathname === '/app' || window.location.pathname === '/app/mobile' || window.location.pathname === '/app/tv';
 
   // Save watchlist to localStorage
   useEffect(() => {
