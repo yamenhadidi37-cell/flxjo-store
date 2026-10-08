@@ -50,16 +50,44 @@ export const MoviesView: React.FC<MoviesViewProps> = ({
       });
   }, [movies, selectedCategory, sortBy, searchQuery]);
 
+  const featuredMovie = filteredMovies[0] || movies[0];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-slate-100">
-      {/* Title */}
+    <div className="text-slate-100">
+      {featuredMovie && (
+        <section
+          className="relative isolate overflow-hidden border-b border-slate-800 bg-slate-950 bg-cover bg-center"
+          style={{ backgroundImage: `url(${featuredMovie.backdropUrl || featuredMovie.posterUrl})` }}
+        >
+          <div className="absolute inset-0 -z-10 bg-gradient-to-l from-[#070b14] via-[#070b14]/90 to-[#070b14]/75" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#070b14] via-transparent to-[#070b14]/45" />
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 sm:py-16">
+            <div className="max-w-2xl">
+              <div className="mb-3 flex items-center gap-2 text-xs font-bold text-amber-300">
+                <Film className="h-4 w-4" />
+                <span>الرئيسية</span><span className="text-slate-500">/</span><span>الأفلام</span>
+              </div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-300">اختيار FLEXJO</p>
+              <h1 className="text-3xl font-black leading-tight text-white sm:text-5xl">دليل الأفلام السينمائية</h1>
+              <p className="mt-4 line-clamp-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                {featuredMovie.story || 'اكتشف مجموعة من الأفلام العربية والعالمية المختارة للمشاهدة بجودة عالية.'}
+              </p>
+              <button onClick={() => onSelectMedia(featuredMovie.id)} className="mt-6 rounded-xl bg-amber-400 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-300">
+                مشاهدة {featuredMovie.title}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-amber-400 mb-1">
             <Film className="w-4 h-4 text-amber-400" />
-            <span>السينما العربية والعالمية</span>
+            <span>السينما العربية والعالمية · {filteredMovies.length} عمل</span>
           </div>
-          <h1 className="text-3xl font-black text-white">دليل الأفلام السينمائية</h1>
+          <h2 className="text-xl font-black text-white sm:text-2xl">تصفح الأفلام</h2>
         </div>
 
         {/* Sort selector */}
@@ -121,6 +149,7 @@ export const MoviesView: React.FC<MoviesViewProps> = ({
           لا توجد أفلام تطابق معايير البحث المحددة.
         </div>
       )}
-    </div>
+      </div>
+      </div>
   );
 };

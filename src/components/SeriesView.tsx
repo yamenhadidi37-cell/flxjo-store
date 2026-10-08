@@ -53,16 +53,44 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
       });
   }, [series, selectedCategory, sortBy, searchQuery]);
 
+  const featuredSeries = filteredSeries[0] || series[0];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-slate-100">
-      {/* Title */}
+    <div className="text-slate-100">
+      {featuredSeries && (
+        <section
+          className="relative isolate overflow-hidden border-b border-slate-800 bg-slate-950 bg-cover bg-center"
+          style={{ backgroundImage: `url(${featuredSeries.backdropUrl || featuredSeries.posterUrl})` }}
+        >
+          <div className="absolute inset-0 -z-10 bg-gradient-to-l from-[#070b14] via-[#070b14]/90 to-[#070b14]/75" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#070b14] via-transparent to-[#070b14]/45" />
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 sm:py-16">
+            <div className="max-w-2xl">
+              <div className="mb-3 flex items-center gap-2 text-xs font-bold text-amber-300">
+                <Tv className="h-4 w-4" />
+                <span>الرئيسية</span><span className="text-slate-500">/</span><span>المسلسلات</span>
+              </div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-300">اختيار FLEXJO</p>
+              <h1 className="text-3xl font-black leading-tight text-white sm:text-5xl">دليل المسلسلات ومواسم العرض</h1>
+              <p className="mt-4 line-clamp-2 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                {featuredSeries.story || 'تابع أحدث المسلسلات والمواسم والحلقات في واجهة مشاهدة مرتبة وسهلة.'}
+              </p>
+              <button onClick={() => onSelectMedia(featuredSeries.id)} className="mt-6 rounded-xl bg-amber-400 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-300">
+                مشاهدة {featuredSeries.title}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-amber-400 mb-1">
             <Tv className="w-4 h-4 text-amber-400" />
-            <span>الدراما التلفزيونية والأنمي</span>
+            <span>الدراما التلفزيونية والأنمي · {filteredSeries.length} عمل</span>
           </div>
-          <h1 className="text-3xl font-black text-white">دليل المسلسلات ومواسم العرض</h1>
+          <h2 className="text-xl font-black text-white sm:text-2xl">تصفح المسلسلات</h2>
         </div>
 
         {/* Sort selector */}
@@ -124,6 +152,7 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
           لا توجد مسلسلات تطابق معايير البحث المحددة.
         </div>
       )}
-    </div>
+      </div>
+      </div>
   );
 };
