@@ -228,9 +228,13 @@ export const EpisodePageView: React.FC<EpisodePageViewProps> = ({
             {episodes.map((_, idx) => {
               const isCurrent = idx === episodeIndex;
               return (
-                <button
+                <a
                   key={idx}
-                  onClick={() => onNavigateEpisode(idx, seasonIndex)}
+                  href={`/watch/${encodeURIComponent(media.id)}/episode/${idx + 1}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onNavigateEpisode(idx, seasonIndex);
+                  }}
                   className={`h-11 sm:h-12 rounded-xl text-center border transition-all cursor-pointer flex items-center justify-center font-black text-sm sm:text-base ${
                     isCurrent
                       ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md scale-105'
@@ -239,7 +243,7 @@ export const EpisodePageView: React.FC<EpisodePageViewProps> = ({
                   title={`الحلقة ${idx + 1}`}
                 >
                   <span className="tabular-nums">{idx + 1}</span>
-                </button>
+                </a>
               );
             })}
           </div>

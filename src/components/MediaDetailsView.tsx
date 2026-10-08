@@ -13,7 +13,7 @@ import {
   Sparkles,
   ChevronLeft,
 } from 'lucide-react';
-import { MediaItem, ConsolidatedSeries, Episode } from '../types/media';
+import { MediaItem, ConsolidatedSeries } from '../types/media';
 import { getCategoryLabel } from '../utils/mediaGrouping';
 
 interface MediaDetailsViewProps {
@@ -90,14 +90,6 @@ export const MediaDetailsView: React.FC<MediaDetailsViewProps> = ({
       if (el) el.remove();
     };
   }, [media, isConsolidated, isMovie]);
-
-  // Current active season episodes
-  const currentSeason = isConsolidated
-    ? media.seasons[selectedSeasonIndex] || media.seasons[0]
-    : null;
-  const currentEpisodes: Episode[] = isConsolidated
-    ? currentSeason?.episodes || []
-    : media.episodes || [];
 
   const handleShare = () => {
     if (navigator.clipboard) {
@@ -264,67 +256,77 @@ export const MediaDetailsView: React.FC<MediaDetailsViewProps> = ({
         </div>
       </div>
 
-      {/* Main Content Area: Episodes Section if TV Show */}
+      {/* Main Content Area: Every season and every episode is exposed as a crawlable URL. */}
       {!isMovie && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
-          {/* Magic Season Linking Tabs */}
+          <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-slate-300">
+            <strong className="text-amber-300">جميع الحلقات:</strong> اختر أي حلقة لمشاهدتها. كل حلقة لها صفحة مستقلة ورابط واضح قابل للفهرسة.
+          </div>
+
           {isConsolidated && media.seasons.length > 1 && (
-            <div className="mb-6">
-              <span className="text-xs font-bold text-slate-400 block mb-2">اختر الموسم أو الجزء:</span>
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
-                {media.seasons.map((season, sIdx) => {
-                  const isActive = selectedSeasonIndex === sIdx;
-                  return (
-                    <button
-                      key={sIdx}
-                      onClick={() => setSelectedSeasonIndex(sIdx)}
-                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-                        isActive
-                          ? 'bg-amber-400 text-slate-950 shadow-md'
-                          : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700'
-                      }`}
-                    >
-                      <Layers className="w-4 h-4" />
-                      <span>{season.seasonName}</span>
-                      <span className={`text-xs ${isActive ? 'text-slate-950/70' : 'text-slate-500'}`}>
-                        ({season.episodes.length} حلقة)
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mb-7 flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+              {media.seasons.map((season, sIdx) => (
+                <a
+                  key={sIdx}
+                  href={`#season-${sIdx + 1}`}
+                  onClick={() => setSelectedSeasonIndex(sIdx)}
+                  className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-amber-400 hover:text-amber-300"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>{season.seasonName}</span>
+                  <span className="text-xs text-slate-500">({season.episodes.length} حلقة)</span>
+                </a>
+              ))}
             </div>
           )}
 
-          {/* Section Header */}
-          <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-800">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <Tv className="w-5 h-5 text-amber-400" />
-              <span>
-                حلقات {isConsolidated && currentSeason ? currentSeason.seasonName : 'المسلسل'}
-              </span>
-              <span className="text-xs text-slate-400 font-semibold tabular-nums mr-2">
-                ({currentEpisodes.length} حلقة متوفرة)
-              </span>
-            </h2>
-            <span className="text-xs text-amber-400 font-semibold">مفهرسة بالكامل بجودة FHD</span>
-          </div>
+          {(isConsolidated
+            ? media.seasons.map((season, seasonIndex) => ({
+                seasonName: season.seasonName,
+                mediaId: season.mediaId,
+                episodes: season.episodes.filter((episode) => !episode.hidden),
+                seasonIndex,
+              }))
+            : [{
+                seasonName: media.seasonName || 'الموسم الأول',
+                mediaId: media.id,
+                episodes: (media.episodes || []).filter((episode) => !episode.hidden),
+                seasonIndex: 0,
+              }]
+          ).map((season) => (
+            <section key={season.mediaId} id={`season-${season.seasonIndex + 1}`} className="mb-8 scroll-mt-28 rounded-xl border border-slate-800 bg-[#0b1021] p-5">
+              <div className="mb-5 flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 className="flex items-center gap-2 text-xl font-bold text-white">
+                  <Tv className="w-5 h-5 text-amber-400" />
+                  <span>حلقات {season.seasonName}</span>
+                  <span className="mr-2 text-xs font-semibold tabular-nums text-slate-400">({season.episodes.length} حلقة)</span>
+                </h2>
+                <span className="hidden text-xs font-semibold text-amber-400 sm:inline">كل حلقة بصفحة مستقلة</span>
+              </div>
 
-          {/* Dedicated Episode Buttons Grid (Compact Numbers Only) */}
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2.5">
-            {currentEpisodes.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => onPlayEpisode(idx, selectedSeasonIndex)}
-                className="h-12 sm:h-14 rounded-xl text-center border border-slate-800 bg-[#0b1021] hover:bg-amber-400 hover:text-slate-950 hover:border-amber-400 text-slate-100 font-black text-base sm:text-lg transition-all cursor-pointer flex items-center justify-center active:scale-95 shadow-md group"
-                title={`مشاهدة الحلقة ${idx + 1}`}
-              >
-                <span className="tabular-nums group-hover:scale-110 transition-transform">
-                  {idx + 1}
-                </span>
-              </button>
-            ))}
-          </div>
+              <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
+                {season.episodes.map((episode, idx) => {
+                  const episodeNumber = episode.episodeNumber || idx + 1;
+                  const episodeHref = `/watch/${encodeURIComponent(season.mediaId)}/episode/${idx + 1}`;
+                  return (
+                    <a
+                      key={`${season.mediaId}-${idx}`}
+                      href={episodeHref}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onPlayEpisode(idx, season.seasonIndex);
+                        window.history.pushState({}, '', episodeHref);
+                      }}
+                      className="group flex h-12 items-center justify-center rounded-xl border border-slate-800 bg-[#070b14] text-base font-black text-slate-100 shadow-md transition-all hover:border-amber-400 hover:bg-amber-400 hover:text-slate-950 active:scale-95 sm:h-14 sm:text-lg"
+                      title={`مشاهدة ${episode.title || `الحلقة ${episodeNumber}`}`}
+                    >
+                      <span className="tabular-nums transition-transform group-hover:scale-110">{episodeNumber}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
