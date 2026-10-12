@@ -93,6 +93,11 @@ def find_episode(item, number):
     return {'title': f'الحلقة {number}'}, index, len(episodes)
 
 
+def episode_label(episode, number):
+    raw_title = safe_text(episode.get('title') if isinstance(episode, dict) else '', '')
+    return f'الحلقة {raw_title}' if raw_title.isdigit() else (raw_title or f'الحلقة {number}')
+
+
 def meta_replace(html, pattern, tag):
     updated, count = re.subn(pattern, tag, html, count=1, flags=re.IGNORECASE)
     if count:
@@ -137,7 +142,7 @@ def seo_html(source, path, items):
                 except ValueError:
                     number = 1
                 episode, index, total = find_episode(item, number)
-                episode_name = safe_text(episode.get('title'), f'الحلقة {number}')
+                episode_name = episode_label(episode, number)
                 title = f'{base_title} - {episode_name} | FLEXJO VIP'
                 description = item_description(item, base_title, episode)
                 keywords = f'{base_title}, {episode_name}, الحلقة {number}, FLEXJO, مشاهدة'
