@@ -1,4 +1,6 @@
 {
+  "buildCommand": "npm run build:client && python3 scripts/generate_static_routes.py",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/sitemap.xml",
