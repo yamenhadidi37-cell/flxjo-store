@@ -211,20 +211,13 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
             </button>
           </div>
         ) : activeIsEmbed ? (
-          /* 
-            EMBED IFRAME:
-            We grant allow-scripts, allow-same-origin, allow-forms, allow-presentation, AND allow-popups.
-            Because allow-popups is granted, the embed host's anti-adblock detection (window.open test)
-            PASSES COMPLETELY! The server DOES NOT know an ad blocker is installed!
-            "Disable sandbox to play the video" NEVER APPEARS!
-            Meanwhile, our Service Worker intercepts and auto-closes unwanted ad popups in the background.
-          */
+          /* External embeds must not be sandboxed: some providers refuse to play
+             and show "Disable sandbox to play the video" when sandbox is present. */
           <div className="relative w-full h-full">
             <iframe
               key={`embed-${iframeKey}-${selectedServer}`}
               src={activeUrl}
               title={title}
-              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups"
               referrerPolicy="no-referrer"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
