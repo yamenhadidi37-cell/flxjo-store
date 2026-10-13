@@ -67,18 +67,6 @@ export const AppDownloadPage: React.FC = () => {
 
   const CodeNotice = ({ tv = false }: { tv?: boolean }) => (
     <div className="relative mt-7 space-y-4">
-      <div className="rounded-2xl border-2 border-amber-300/80 bg-amber-300/10 px-5 py-5 text-amber-50 shadow-lg shadow-amber-950/20 sm:px-7 sm:py-6">
-        <div className="flex items-center justify-center gap-2 text-sm font-black text-amber-300 sm:text-base">
-          <AlertTriangle className="h-5 w-5 shrink-0" />
-          تنبيه مهم قبل فتح التطبيق
-        </div>
-        <p className="mt-2 text-sm leading-7 text-amber-50/85 sm:text-base">
-          بعد تثبيت التطبيق، أدخل رمز الفتح التالي عندما يطلبه التطبيق:
-        </p>
-        <div className="mt-3 select-all text-4xl font-black tracking-[0.35em] text-white sm:text-5xl" dir="ltr">{appCode}</div>
-        <p className="mt-2 text-xs font-semibold text-amber-200/75">رمز التطبيق: {appCode}</p>
-      </div>
-
       {tv && (
         <div className="rounded-2xl border border-blue-400/60 bg-blue-500/10 px-5 py-5 text-blue-50 sm:px-7 sm:py-6">
           <div className="flex items-center justify-center gap-2 text-sm font-black text-blue-200 sm:text-base">
@@ -139,6 +127,20 @@ export const AppDownloadPage: React.FC = () => {
   return (
     <div className="flexjo-app-page min-h-screen bg-[#070b14] text-slate-100" dir="rtl">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 sm:px-8 lg:px-12">
+        <div
+          role="alert"
+          aria-live="polite"
+          className="sticky top-3 z-30 mb-6 rounded-3xl border-4 border-amber-200 bg-amber-300 px-5 py-5 text-center text-slate-950 shadow-2xl shadow-amber-950/40 sm:px-10 sm:py-7"
+        >
+          <div className="flex items-center justify-center gap-2 text-base font-black sm:text-xl">
+            <AlertTriangle className="h-6 w-6 shrink-0 sm:h-8 sm:w-8" strokeWidth={2.5} />
+            تنبيه مهم: رمز فتح التطبيق
+          </div>
+          <div className="mt-1 select-all text-7xl font-black leading-none tracking-[0.28em] sm:text-8xl" dir="ltr">
+            {appCode}
+          </div>
+          <p className="mt-2 text-sm font-black sm:text-lg">أدخل هذا الرمز بعد تثبيت التطبيق</p>
+        </div>
         <header className="flex items-center justify-center"><BrandLogo size="md" clickable onClick={() => { window.location.href = '/'; }} /></header>
         <main className="flex flex-1 items-center justify-center py-12 sm:py-16">
           <section className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-slate-700/70 bg-slate-900/70 p-7 text-center shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-12">
