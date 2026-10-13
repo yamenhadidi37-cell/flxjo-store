@@ -130,7 +130,7 @@ export const AppDownloadPage: React.FC = () => {
         <div
           role="alert"
           aria-live="polite"
-          className="sticky top-3 z-30 mb-6 rounded-3xl border-4 border-amber-200 bg-amber-300 px-5 py-5 text-center text-slate-950 shadow-2xl shadow-amber-950/40 sm:px-10 sm:py-7"
+          className="sticky top-3 z-30 mb-6 rounded-3xl border-4 border-red-200 bg-red-600 px-5 py-5 text-center text-white shadow-2xl shadow-red-950/50 sm:px-10 sm:py-7"
         >
           <div className="flex items-center justify-center gap-2 text-base font-black sm:text-xl">
             <AlertTriangle className="h-6 w-6 shrink-0 sm:h-8 sm:w-8" strokeWidth={2.5} />
