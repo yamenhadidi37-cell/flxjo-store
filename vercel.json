@@ -93,5 +93,15 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/app",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app/:device",
+      "destination": "/index.html"
+    }
   ]
 }
