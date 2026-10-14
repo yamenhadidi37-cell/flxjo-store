@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Download, ShieldCheck, Smartphone, Tv } from 'lucide-react';
+import { Download, ShieldCheck, Smartphone, Tv } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
-const appDownloadUrl = 'https://www.mediafire.com/file/7ltheh8qt8391uy/FLEXJO.apk/file';
-const appCode = '8080';
+const appDownloadUrl = 'https://www.mediafire.com/file/hlmveh8xmbfwr92/FLEXJO.apk/file';
 const downloaderCode = '5010497';
 
 type AppMode = 'choose' | 'phone' | 'tv';
@@ -126,20 +125,6 @@ export const AppDownloadPage: React.FC = () => {
   return (
     <div className="flexjo-app-page min-h-screen bg-[#070b14] text-slate-100" dir="rtl">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 sm:px-8 lg:px-12">
-        <div
-          role="alert"
-          aria-live="polite"
-          className="sticky top-3 z-30 mb-6 rounded-3xl border-4 border-red-200 bg-red-600 px-5 py-5 text-center text-white shadow-2xl shadow-red-950/50 sm:px-10 sm:py-7"
-        >
-          <div className="flex items-center justify-center gap-2 text-base font-black sm:text-xl">
-            <AlertTriangle className="h-6 w-6 shrink-0 sm:h-8 sm:w-8" strokeWidth={2.5} />
-            تنبيه مهم: رمز فتح التطبيق
-          </div>
-          <div className="mt-1 select-all text-7xl font-black leading-none tracking-[0.28em] sm:text-8xl" dir="ltr">
-            {appCode}
-          </div>
-          <p className="mt-2 text-sm font-black sm:text-lg">أدخل هذا الرمز بعد تثبيت التطبيق</p>
-        </div>
         <header className="flex items-center justify-center"><BrandLogo size="md" clickable onClick={() => { window.location.href = '/'; }} /></header>
         <main className="flex flex-1 items-center justify-center py-12 sm:py-16">
           <section className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-slate-700/70 bg-slate-900/70 p-7 text-center shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-12">
