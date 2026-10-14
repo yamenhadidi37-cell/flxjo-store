@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Download, ShieldCheck, Smartphone, Tv } from 'lucide-react';
+import { Download, Info, ShieldCheck, Smartphone, Tv } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
 const appDownloadUrl = 'https://www.mediafire.com/file/hlmveh8xmbfwr92/FLEXJO.apk/file';
@@ -115,6 +115,13 @@ export const AppDownloadPage: React.FC = () => {
         {mode === 'tv' ? 'نسخة FLEXJO المخصصة لشاشات Android TV.' : 'نسخة FLEXJO المخصصة لهواتف Android.'}
       </p>
       <div className="relative mt-8"><DownloadButton tv={mode === 'tv'} /></div>
+      <div className="relative mt-5 flex items-start gap-3 rounded-2xl border border-blue-300/20 bg-blue-400/10 px-4 py-4 text-right text-sm leading-7 text-blue-100/80">
+        <Info className="mt-1 h-5 w-5 shrink-0 text-blue-300" />
+        <p>
+          <span className="font-black text-blue-200">ملاحظة:</span>{' '}
+          قد يظهر أحيانًا تحذير من Google لأن التطبيق جديد أو غير معروف بعد. هذا لا يعني بالضرورة وجود فيروس؛ استخدم رابط التحميل الرسمي، ونحن نعمل على معالجة التنبيه قريبًا.
+        </p>
+      </div>
       <CodeNotice tv={mode === 'tv'} />
       <button onClick={() => { setMode('choose'); window.history.pushState({}, '', '/app'); }} className="relative mt-6 text-sm font-bold text-slate-400 transition hover:text-amber-300">
         اختيار جهاز آخر
