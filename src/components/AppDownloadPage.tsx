@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Download, ShieldCheck, Smartphone, Tv } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
-const phoneDownloadUrl = 'https://www.mediafire.com/file/mpaxo7l9mwsfrkm/FLEXJO.apk/file';
-const tvDownloadUrl = 'https://www.mediafire.com/file/0gmoe3hn7f7jh35/FLEXJO+(1).apk/file';
+const appDownloadUrl = 'https://www.mediafire.com/file/a86rbxbccl00vmx/FLEXJO.apk/file';
 const appCode = '8080';
 const downloaderCode = '5010497';
 
@@ -52,7 +51,7 @@ export const AppDownloadPage: React.FC = () => {
 
   const DownloadButton = ({ tv = false }: { tv?: boolean }) => (
     <a
-      href={tv ? tvDownloadUrl : phoneDownloadUrl}
+      href={appDownloadUrl}
       rel="nofollow noopener"
       className={`inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl px-5 py-4 text-sm font-black transition hover:-translate-y-1 focus:outline-none focus:ring-4 sm:text-base ${
         tv
