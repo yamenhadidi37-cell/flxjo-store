@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Download, ShieldCheck, Smartphone, Tv } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
-const appDownloadUrl = 'https://www.mediafire.com/file/a86rbxbccl00vmx/FLEXJO.apk/file';
+const appDownloadUrl = 'https://www.mediafire.com/file/7ltheh8qt8391uy/FLEXJO.apk/file';
 const appCode = '8080';
 const downloaderCode = '5010497';
 
