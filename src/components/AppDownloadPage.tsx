@@ -115,10 +115,10 @@ export const AppDownloadPage: React.FC = () => {
         {mode === 'tv' ? 'نسخة FLEXJO المخصصة لشاشات Android TV.' : 'نسخة FLEXJO المخصصة لهواتف Android.'}
       </p>
       <div className="relative mt-8"><DownloadButton tv={mode === 'tv'} /></div>
-      <div className="relative mt-5 flex items-start gap-3 rounded-2xl border border-blue-300/20 bg-blue-400/10 px-4 py-4 text-right text-sm leading-7 text-blue-100/80">
-        <Info className="mt-1 h-5 w-5 shrink-0 text-blue-300" />
+      <div className="relative mt-5 flex items-start gap-3 rounded-2xl border-2 border-red-300/80 bg-red-600 px-4 py-4 text-right text-sm leading-7 text-white shadow-lg shadow-red-950/30">
+        <Info className="mt-1 h-5 w-5 shrink-0 text-red-100" />
         <p>
-          <span className="font-black text-blue-200">ملاحظة:</span>{' '}
+          <span className="font-black text-white">ملاحظة:</span>{' '}
           قد يظهر أحيانًا تحذير من Google لأن التطبيق جديد أو غير معروف بعد. هذا لا يعني بالضرورة وجود فيروس؛ استخدم رابط التحميل الرسمي، ونحن نعمل على معالجة التنبيه قريبًا.
         </p>
       </div>
