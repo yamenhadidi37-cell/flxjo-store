@@ -195,11 +195,28 @@ def seo_html(source, path, items):
                 previous_link = f'<a href="/watch/{quote(unquote(parts[1]), safe="")}/episode/{index}">الحلقة السابقة</a>' if index > 0 else ''
                 next_link = f'<a href="/watch/{quote(unquote(parts[1]), safe="")}/episode/{index + 2}">الحلقة التالية</a>' if index + 1 < total else ''
                 navigation = ' · '.join(link for link in [previous_link, next_link] if link)
+                episode_links = []
+                for episode_index, listed_episode in enumerate(episode_list(item), 1):
+                    if isinstance(listed_episode, dict) and listed_episode.get('hidden') is True:
+                        continue
+                    listed_name = episode_label(listed_episode, episode_index)
+                    listed_href = f'/watch/{quote(unquote(parts[1]), safe="")}/episode/{episode_index}'
+                    marker = ' <strong>(الحلقة الحالية)</strong>' if episode_index == number else ''
+                    episode_links.append(
+                        f'<li><a href="{listed_href}">{escape(listed_name)}</a>{marker}</li>'
+                    )
+                episode_index_list = (
+                    '<h2>جميع حلقات المسلسل</h2>'
+                    '<p>تصفح جميع الحلقات بالاسم والرقم:</p>'
+                    f'<ol>{"".join(episode_links)}</ol>'
+                    if episode_links else ''
+                )
                 body = (
                     f'<h1>{escape(title)}</h1><p>{escape(description)}</p>'
                     f'<p>مشاهدة {escape(base_title)} {escape(episode_name)} أونلاين بجودة عالية، مع روابط الحلقة السابقة والتالية وصفحة المسلسل.</p>'
                     f'<p><a href="/media/{quote(unquote(parts[1]), safe="")}">صفحة {escape(base_title)}</a>'
                     f'{(" · " + navigation) if navigation else ""}</p>'
+                    f'{episode_index_list}'
                 )
 
     canonical = f'{ORIGIN}/{path}'
