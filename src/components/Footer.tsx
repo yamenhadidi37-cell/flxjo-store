@@ -35,7 +35,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, mediaCount }) => {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-xs">
           <p className="text-center sm:text-right">
-            © {new Date().getFullYear()} FLEXJO VIP. جميع الحقوق محفوظة. منصة مخصصة لمشاهدة الأفلام والمسلسلات وقنوات البث المباشر.
+            © {new Date().getFullYear()} FLEXJO. جميع الحقوق محفوظة. منصة مخصصة لمشاهدة الأفلام والمسلسلات وقنوات البث المباشر.
           </p>
 
           <div className="flex items-center gap-4">

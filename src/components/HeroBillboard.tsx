@@ -55,7 +55,7 @@ export const HeroBillboard: React.FC<HeroBillboardProps> = ({
           {/* Tagline / Badges */}
           <div className="flex items-center gap-2.5 text-xs text-amber-300 font-bold">
             <span className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider">
-              {currentItem.type === 'movie' ? 'فيلم حصري' : 'عمل حصري VIP'}
+              {currentItem.type === 'movie' ? 'فيلم مختار' : 'عمل مختار'}
             </span>
             <span aria-hidden="true" className="text-slate-600">·</span>
             <span>{getCategoryLabel(currentItem.category)}</span>
@@ -84,7 +84,7 @@ export const HeroBillboard: React.FC<HeroBillboardProps> = ({
           {/* Synopsis */}
           <p className="text-sm sm:text-base text-slate-300 line-clamp-3 leading-relaxed max-w-xl font-normal drop-shadow">
             {currentItem.story ||
-              'شاهد أقوى الأعمال الدرامية والسينمائية بجودة فائقة السرعة على منصة FLEXJO VIP مع تجربة مشاهدة استثنائية وسلسة.'}
+              'شاهد أقوى الأعمال الدرامية والسينمائية بجودة عالية مع تجربة مشاهدة استثنائية وسلسة على FLEXJO.'}
           </p>
 
           {/* Action Buttons */}

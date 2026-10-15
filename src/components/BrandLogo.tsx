@@ -112,9 +112,6 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           >
             FLEXJO
           </span>
-          <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-slate-950 uppercase tracking-widest shadow-sm">
-            VIP
-          </span>
         </div>
 
         {showSubtitle && (

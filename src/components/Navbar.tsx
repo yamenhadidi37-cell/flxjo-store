@@ -35,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#070b14]/90 backdrop-blur-md border-b border-slate-800/80 transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-20 py-3 flex items-center justify-between gap-2 sm:gap-4">
         {/* Zone 1: Single Brand element */}
         <div className="shrink-0 flex items-center gap-3">
           <BrandLogo
@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   placeholder="ابحث عن فيلم أو مسلسل أو ممثل..."
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  className="bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none w-48 sm:w-64"
+                  className="bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none w-[min(48vw,16rem)] sm:w-64"
                   autoFocus
                 />
                 <button
@@ -150,4 +150,3 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
-

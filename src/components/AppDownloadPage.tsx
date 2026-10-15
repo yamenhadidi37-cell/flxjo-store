@@ -38,7 +38,7 @@ export const AppDownloadPage: React.FC = () => {
     return () => {
       robots?.remove();
       googlebot?.remove();
-      document.title = 'FLEXJO VIP – أفلام، مسلسلات وقنوات بث مباشر';
+      document.title = 'FLEXJO – أفلام، مسلسلات وقنوات بث مباشر';
     };
   }, [mode]);
 
@@ -141,7 +141,7 @@ export const AppDownloadPage: React.FC = () => {
             {mode !== 'choose' && <div className="relative mt-6 flex items-center justify-center gap-2 text-xs text-slate-400"><ShieldCheck className="h-4 w-4 text-emerald-400" />رابط التحميل الرسمي يفتح من MediaFire</div>}
           </section>
         </main>
-        <footer className="pb-2 text-center text-xs text-slate-500">FLEXJO VIP · صفحة تحميل التطبيق</footer>
+        <footer className="pb-2 text-center text-xs text-slate-500">FLEXJO · صفحة تحميل التطبيق</footer>
       </div>
     </div>
   );

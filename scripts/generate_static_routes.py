@@ -73,11 +73,11 @@ def item_description(item, title, episode_title=None):
         overview = safe_text(episode_title.get('overview'))
         if overview:
             return overview[:155]
-        return f'مشاهدة {episode_title.get("title", "الحلقة")} من مسلسل {title} بجودة عالية على FLEXJO VIP.'[:155]
+        return f'مشاهدة {episode_title.get("title", "الحلقة")} من مسلسل {title} بجودة عالية على FLEXJO. تفاصيل الحلقة والقصة وروابط الحلقات.'[:155]
     if story:
         return story[:155]
     kind = 'فيلم' if item.get('type') == 'movie' else 'مسلسل'
-    return f'مشاهدة {kind} {title} بجودة عالية على FLEXJO VIP.'[:155]
+    return f'مشاهدة {kind} {title} بجودة عالية على FLEXJO. القصة والتفاصيل وروابط المشاهدة.'[:155]
 
 
 def episode_list(item):
@@ -108,11 +108,11 @@ def meta_replace(html, pattern, tag):
 def seo_html(source, path, items):
     parts = path.split('/')
     item = None
-    title = 'FLEXJO VIP – أفلام ومسلسلات'
-    description = 'شاهد الأفلام والمسلسلات والحلقات بجودة عالية على منصة FLEXJO VIP.'
+    title = 'FLEXJO – أفلام ومسلسلات'
+    description = 'شاهد الأفلام والمسلسلات والحلقات بجودة عالية على FLEXJO.'
     keywords = 'FLEXJO, أفلام, مسلسلات, حلقات, مشاهدة'
     image = ''
-    body = '<h1>FLEXJO VIP</h1><p>أفلام ومسلسلات وحلقات بجودة عالية.</p>'
+    body = '<h1>FLEXJO</h1><p>أفلام ومسلسلات وحلقات بجودة عالية.</p>'
 
     if len(parts) >= 2 and parts[0] in {'media', 'watch'}:
         item = items.get(unquote(parts[1]))
@@ -120,7 +120,7 @@ def seo_html(source, path, items):
             base_title = item_title(item, 'عمل FLEXJO')
             image = safe_text(item.get('posterUrl'))
             if parts[0] == 'media':
-                title = f'{base_title} | FLEXJO VIP'
+                title = f'{base_title} | FLEXJO'
                 description = item_description(item, base_title)
                 keywords = f'{base_title}, {safe_text(item.get("category"), "مشاهدة")}, FLEXJO, مشاهدة, {"فيلم" if item.get("type") == "movie" else "مسلسل"}'
                 links = [f'<p><a href="/">الرئيسية</a> · <a href="/{"movies" if item.get("type") == "movie" else "series"}">{"الأفلام" if item.get("type") == "movie" else "المسلسلات"}</a></p>']
@@ -143,7 +143,7 @@ def seo_html(source, path, items):
                     number = 1
                 episode, index, total = find_episode(item, number)
                 episode_name = episode_label(episode, number)
-                title = f'{base_title} - {episode_name} | FLEXJO VIP'
+                title = f'{base_title} - {episode_name} | FLEXJO'
                 description = item_description(item, base_title, episode)
                 keywords = f'{base_title}, {episode_name}, الحلقة {number}, FLEXJO, مشاهدة'
                 previous_link = f'<a href="/watch/{quote(unquote(parts[1]), safe="")}/episode/{index}">الحلقة السابقة</a>' if index > 0 else ''

@@ -51,7 +51,7 @@ export const EpisodePageView: React.FC<EpisodePageViewProps> = ({
   // SEO & Structured Data (JSON-LD) for Google Indexing of TVEpisode
   useEffect(() => {
     const episodeTitle = `${media.title} - ${seasonName} - ${currentEp.title}`;
-    document.title = `${episodeTitle} | FLEXJO VIP`;
+    document.title = `${episodeTitle} | FLEXJO`;
 
     const scriptId = 'schema-episode-jsonld';
     let script = document.getElementById(scriptId) as HTMLScriptElement | null;
@@ -86,7 +86,7 @@ export const EpisodePageView: React.FC<EpisodePageViewProps> = ({
     return () => {
       const el = document.getElementById(scriptId);
       if (el) el.remove();
-      document.title = 'FLEXJO VIP – أفلام، مسلسلات وقنوات بث مباشر';
+      document.title = 'FLEXJO – أفلام، مسلسلات وقنوات بث مباشر';
     };
   }, [media, currentEp, seasonName, seasonIndex, episodeIndex]);
 
@@ -105,7 +105,7 @@ export const EpisodePageView: React.FC<EpisodePageViewProps> = ({
     <div className="min-h-screen bg-[#070b14] text-slate-100 pb-20">
       {/* Top Breadcrumb & Actions Bar */}
       <div className="bg-[#0a0f1d] border-b border-slate-800 px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-40 backdrop-blur-md">
-        <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-400">
           <button
             onClick={onBackToHome}
             className="text-amber-400 hover:text-amber-300 font-bold cursor-pointer"
@@ -125,7 +125,7 @@ export const EpisodePageView: React.FC<EpisodePageViewProps> = ({
           <span className="text-white font-bold">{currentEp.title}</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <button
             onClick={handleShare}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors"
@@ -168,17 +168,17 @@ export const EpisodePageView: React.FC<EpisodePageViewProps> = ({
         />
 
         {/* Episode Navigation Controls */}
-        <div className="mt-4 bg-[#0c1222] border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="mt-4 bg-[#0c1222] border border-slate-800 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <span className="text-xs text-slate-400 font-medium">
             تصفح حلقات {seasonName}
           </span>
 
           {/* Prev / Next controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2">
             <button
               disabled={!hasPrev}
               onClick={() => onNavigateEpisode(episodeIndex - 1, seasonIndex)}
-              className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-xs font-semibold text-slate-200 flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="flex-1 sm:flex-none px-2.5 sm:px-3.5 py-2 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             >
               <SkipForward className="w-4 h-4 ml-1" />
               <span>الحلقة السابقة</span>
@@ -187,7 +187,7 @@ export const EpisodePageView: React.FC<EpisodePageViewProps> = ({
             <button
               disabled={!hasNext}
               onClick={() => onNavigateEpisode(episodeIndex + 1, seasonIndex)}
-              className="px-4 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 disabled:opacity-30 disabled:pointer-events-none text-xs font-bold text-slate-950 flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 disabled:opacity-30 disabled:pointer-events-none text-xs font-bold text-slate-950 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             >
               <span>الحلقة التالية</span>
               <SkipBack className="w-4 h-4 mr-1" />
