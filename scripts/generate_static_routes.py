@@ -13,6 +13,7 @@ NS = '{http://www.sitemaps.org/schemas/sitemap/0.9}'
 ORIGIN = 'https://flexjo.sbs'
 FIRESTORE_PROJECT = 'kpro-a1c5d'
 FIRESTORE_KEY = 'AIzaSyCucLj9W843sJXwhlfVsi15soRyq29wkdU'
+COMMON_KEYWORDS = ['مشاهدة', 'تحميل', 'كامل', 'جودة عالية', 'أونلاين', 'حلقات', 'مسلسلات', 'أفلام']
 
 
 def typed_value(value):
@@ -67,6 +68,45 @@ def item_title(item, fallback):
     return safe_text(item.get('title'), fallback)
 
 
+def keyword_list(*values):
+    """Build concise, page-specific search phrases without keyword stuffing."""
+    result = []
+    for value in values:
+        if isinstance(value, (list, tuple, set)):
+            result.extend(value)
+        elif value:
+            result.append(str(value).strip())
+    unique = []
+    seen = set()
+    for value in result:
+        normalized = re.sub(r'\s+', ' ', value).strip(' ,')
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            unique.append(normalized)
+    return unique
+
+
+def media_keywords(title, kind, category='', episode_name=None, number=None):
+    phrases = [
+        title,
+        f'مشاهدة {title}',
+        f'تحميل {title}',
+        f'{title} كامل',
+        f'{title} أونلاين',
+        f'{kind} {title}',
+        category,
+        COMMON_KEYWORDS,
+    ]
+    if episode_name:
+        phrases.extend([
+            episode_name,
+            f'مشاهدة {title} {episode_name}',
+            f'{title} الحلقة {number}',
+            f'الحلقة {number} من مسلسل {title}',
+        ])
+    return keyword_list(*phrases)
+
+
 def item_description(item, title, episode_title=None):
     story = safe_text(item.get('story'))
     if episode_title:
@@ -110,7 +150,7 @@ def seo_html(source, path, items):
     item = None
     title = 'FLEXJO – أفلام ومسلسلات'
     description = 'شاهد الأفلام والمسلسلات والحلقات بجودة عالية على FLEXJO.'
-    keywords = 'FLEXJO, أفلام, مسلسلات, حلقات, مشاهدة'
+    keywords = ', '.join(keyword_list('FLEXJO', COMMON_KEYWORDS))
     image = ''
     body = '<h1>FLEXJO</h1><p>أفلام ومسلسلات وحلقات بجودة عالية.</p>'
 
@@ -122,9 +162,15 @@ def seo_html(source, path, items):
             if parts[0] == 'media':
                 title = f'{base_title} | FLEXJO'
                 description = item_description(item, base_title)
-                keywords = f'{base_title}, {safe_text(item.get("category"), "مشاهدة")}, FLEXJO, مشاهدة, {"فيلم" if item.get("type") == "movie" else "مسلسل"}'
+                kind = 'فيلم' if item.get('type') == 'movie' else 'مسلسل'
+                keywords = ', '.join(media_keywords(base_title, kind, safe_text(item.get('category'))))
                 links = [f'<p><a href="/">الرئيسية</a> · <a href="/{"movies" if item.get("type") == "movie" else "series"}">{"الأفلام" if item.get("type") == "movie" else "المسلسلات"}</a></p>']
-                body_parts = [f'<h1>{escape(base_title)}</h1>', f'<p>{escape(description)}</p>', *links]
+                body_parts = [
+                    f'<h1>{escape(base_title)}</h1>',
+                    f'<p>{escape(description)}</p>',
+                    f'<p>مشاهدة {escape(kind)} {escape(base_title)} أونلاين، ومعرفة التفاصيل والوصول إلى الصفحات المرتبطة بهذا العمل.</p>',
+                    *links,
+                ]
                 episodes = episode_list(item)
                 if episodes:
                     body_parts.append('<h2>حلقات المسلسل</h2><ul>')
@@ -145,12 +191,13 @@ def seo_html(source, path, items):
                 episode_name = episode_label(episode, number)
                 title = f'{base_title} - {episode_name} | FLEXJO'
                 description = item_description(item, base_title, episode)
-                keywords = f'{base_title}, {episode_name}, الحلقة {number}, FLEXJO, مشاهدة'
+                keywords = ', '.join(media_keywords(base_title, 'مسلسل', safe_text(item.get('category')), episode_name, number))
                 previous_link = f'<a href="/watch/{quote(unquote(parts[1]), safe="")}/episode/{index}">الحلقة السابقة</a>' if index > 0 else ''
                 next_link = f'<a href="/watch/{quote(unquote(parts[1]), safe="")}/episode/{index + 2}">الحلقة التالية</a>' if index + 1 < total else ''
                 navigation = ' · '.join(link for link in [previous_link, next_link] if link)
                 body = (
                     f'<h1>{escape(title)}</h1><p>{escape(description)}</p>'
+                    f'<p>مشاهدة {escape(base_title)} {escape(episode_name)} أونلاين بجودة عالية، مع روابط الحلقة السابقة والتالية وصفحة المسلسل.</p>'
                     f'<p><a href="/media/{quote(unquote(parts[1]), safe="")}">صفحة {escape(base_title)}</a>'
                     f'{(" · " + navigation) if navigation else ""}</p>'
                 )
