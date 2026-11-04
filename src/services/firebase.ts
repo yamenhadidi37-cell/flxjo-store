@@ -2,7 +2,9 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getFirestore,
   collection,
+  doc,
   getDocs,
+  onSnapshot,
   Firestore,
 } from 'firebase/firestore';
 import { MediaItem, LiveChannel, FolderItem } from '../types/media';
@@ -51,6 +53,55 @@ export const getFirebaseDb = (): Firestore | null => {
     console.warn('[Firebase] Init notice:', err);
     return null;
   }
+};
+
+export interface AppUpdateConfig {
+  downloadUrl: string;
+  version: string;
+}
+
+const readAppUpdateConfig = (data: Record<string, unknown>): AppUpdateConfig => {
+  const urlFields = ['تحديث عنوان URL', 'تحديث_عنوان_URL', 'updateUrl', 'downloadUrl', 'update_url'];
+  const rawUrl = urlFields
+    .map((field) => data[field])
+    .find((value) => typeof value === 'string' && value.trim());
+
+  let downloadUrl = '';
+  if (typeof rawUrl === 'string') {
+    try {
+      const parsedUrl = new URL(rawUrl.trim());
+      if (parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:') {
+        downloadUrl = parsedUrl.toString();
+      }
+    } catch {
+      // Ignore invalid Firestore URLs and let the page keep its existing fallback link.
+    }
+  }
+
+  const versionFields = ['versionName', 'version', 'versionCode'];
+  const rawVersion = versionFields
+    .map((field) => data[field])
+    .find((value) => (typeof value === 'string' && value.trim()) || typeof value === 'number');
+
+  return {
+    downloadUrl,
+    version: rawVersion === undefined ? '' : String(rawVersion).trim(),
+  };
+};
+
+/** Listen for live changes to the app's download URL and version in Firestore. */
+export const subscribeAppUpdateConfig = (
+  onUpdate: (config: AppUpdateConfig) => void,
+  onError?: (error: Error) => void,
+): (() => void) => {
+  const db = getFirebaseDb();
+  if (!db) return () => undefined;
+
+  return onSnapshot(
+    doc(db, 'app_config', 'تحديث_المعلومات'),
+    (snapshot) => onUpdate(readAppUpdateConfig(snapshot.data() || {})),
+    (error) => onError?.(error),
+  );
 };
 
 export interface FetchResult {

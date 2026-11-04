@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Download, Info, ShieldCheck, Smartphone, Tv } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
+import { subscribeAppUpdateConfig } from '../services/firebase';
 
-const appDownloadUrl = 'https://www.mediafire.com/file/96v27vh8czt6ikd/Flexjo.apk/file';
+const fallbackAppDownloadUrl = 'https://www.mediafire.com/file/96v27vh8czt6ikd/Flexjo.apk/file';
 const downloaderCode = '5010497';
 
 type AppMode = 'choose' | 'phone' | 'tv';
@@ -15,6 +16,16 @@ const modeFromPath = (): AppMode => {
 
 export const AppDownloadPage: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(modeFromPath);
+  const [appDownloadUrl, setAppDownloadUrl] = useState(fallbackAppDownloadUrl);
+  const [appVersion, setAppVersion] = useState('');
+
+  useEffect(() => subscribeAppUpdateConfig(
+    ({ downloadUrl, version }) => {
+      if (downloadUrl) setAppDownloadUrl(downloadUrl);
+      setAppVersion(version);
+    },
+    (error) => console.warn('[App update config] Could not read Firestore settings:', error),
+  ), []);
 
   useEffect(() => {
     document.title = mode === 'tv' ? 'تحميل FLEXJO للتلفاز' : mode === 'phone' ? 'تحميل FLEXJO للهاتف' : 'تحميل تطبيق FLEXJO';
@@ -115,6 +126,7 @@ export const AppDownloadPage: React.FC = () => {
         {mode === 'tv' ? 'نسخة FLEXJO المخصصة لشاشات Android TV.' : 'نسخة FLEXJO المخصصة لهواتف Android.'}
       </p>
       <div className="relative mt-8"><DownloadButton tv={mode === 'tv'} /></div>
+      {appVersion && <p className="relative mt-3 text-sm font-semibold text-slate-400">رقم الإصدار: <span dir="ltr" className="text-slate-200">{appVersion}</span></p>}
       <div className="relative mt-5 flex items-start gap-3 rounded-2xl border-2 border-red-300/80 bg-red-600 px-4 py-4 text-right text-sm leading-7 text-white shadow-lg shadow-red-950/30">
         <Info className="mt-1 h-5 w-5 shrink-0 text-red-100" />
         <p>
