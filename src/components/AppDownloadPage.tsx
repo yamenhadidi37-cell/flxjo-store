@@ -3,10 +3,10 @@ import { Download, Info, ShieldCheck, Smartphone, Tv } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { subscribeAppUpdateConfig } from '../services/firebase';
 
-const fallbackAppDownloadUrl = 'https://www.mediafire.com/file/96v27vh8czt6ikd/Flexjo.apk/file';
 const downloaderCode = '5010497';
 
 type AppMode = 'choose' | 'phone' | 'tv';
+type AppUpdateStatus = 'connecting' | 'ready' | 'unavailable' | 'error';
 
 const modeFromPath = (): AppMode => {
   if (window.location.pathname === '/app/tv') return 'tv';
@@ -16,15 +16,31 @@ const modeFromPath = (): AppMode => {
 
 export const AppDownloadPage: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(modeFromPath);
-  const [appDownloadUrl, setAppDownloadUrl] = useState(fallbackAppDownloadUrl);
+  const [appDownloadUrl, setAppDownloadUrl] = useState('');
   const [appVersion, setAppVersion] = useState('');
+  const [updateStatus, setUpdateStatus] = useState<AppUpdateStatus>('connecting');
 
   useEffect(() => subscribeAppUpdateConfig(
-    ({ downloadUrl, version }) => {
-      if (downloadUrl) setAppDownloadUrl(downloadUrl);
+    ({ downloadUrl, version, serverSynced }) => {
+      if (!serverSynced) return;
+
+      if (!downloadUrl) {
+        setAppDownloadUrl('');
+        setAppVersion('');
+        setUpdateStatus('unavailable');
+        return;
+      }
+
+      setAppDownloadUrl(downloadUrl);
       setAppVersion(version);
+      setUpdateStatus('ready');
     },
-    (error) => console.warn('[App update config] Could not read Firestore settings:', error),
+    (error) => {
+      console.warn('[App update config] Could not read Firestore settings:', error);
+      setAppDownloadUrl('');
+      setAppVersion('');
+      setUpdateStatus('error');
+    },
   ), []);
 
   useEffect(() => {
@@ -59,20 +75,37 @@ export const AppDownloadPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const DownloadButton = ({ tv = false }: { tv?: boolean }) => (
-    <a
-      href={appDownloadUrl}
-      rel="nofollow noopener"
-      className={`inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl px-5 py-4 text-sm font-black transition hover:-translate-y-1 focus:outline-none focus:ring-4 sm:text-base ${
-        tv
-          ? 'border border-blue-400/60 bg-blue-500/15 text-blue-100 hover:border-blue-300 hover:bg-blue-500/25 focus:ring-blue-400/30'
-          : 'bg-amber-300 text-slate-950 shadow-xl shadow-amber-400/10 hover:bg-amber-200 focus:ring-amber-300/30'
-      }`}
-    >
-      <Download className="h-5 w-5" />
-      تحميل تطبيق FLEXJO
-    </a>
-  );
+  const DownloadButton = ({ tv = false }: { tv?: boolean }) => {
+    const isReady = updateStatus === 'ready' && Boolean(appDownloadUrl);
+    const className = `inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl px-5 py-4 text-sm font-black transition focus:outline-none focus:ring-4 sm:text-base ${
+      isReady
+        ? tv
+          ? 'border border-blue-400/60 bg-blue-500/15 text-blue-100 hover:-translate-y-1 hover:border-blue-300 hover:bg-blue-500/25 focus:ring-blue-400/30'
+          : 'bg-amber-300 text-slate-950 shadow-xl shadow-amber-400/10 hover:-translate-y-1 hover:bg-amber-200 focus:ring-amber-300/30'
+        : 'cursor-not-allowed border border-slate-700 bg-slate-800 text-slate-400 opacity-75'
+    }`;
+    const buttonText = updateStatus === 'connecting'
+      ? 'جارٍ الاتصال بالخادم...'
+      : updateStatus === 'error'
+        ? 'تعذّر الاتصال بالخادم'
+        : 'رابط التحميل غير متاح';
+
+    if (!isReady) {
+      return (
+        <button type="button" disabled aria-disabled="true" aria-busy={updateStatus === 'connecting'} className={className}>
+          <Download className="h-5 w-5" />
+          {buttonText}
+        </button>
+      );
+    }
+
+    return (
+      <a href={appDownloadUrl} rel="nofollow noopener" className={className}>
+        <Download className="h-5 w-5" />
+        تحميل تطبيق FLEXJO
+      </a>
+    );
+  };
 
   const CodeNotice = ({ tv = false }: { tv?: boolean }) => (
     <div className="relative mt-7 space-y-4">
@@ -150,7 +183,7 @@ export const AppDownloadPage: React.FC = () => {
             <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/15 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-amber-400/10 blur-3xl" />
             {content}
-            {mode !== 'choose' && <div className="relative mt-6 flex items-center justify-center gap-2 text-xs text-slate-400"><ShieldCheck className="h-4 w-4 text-emerald-400" />رابط التحميل الرسمي يفتح من MediaFire</div>}
+            {mode !== 'choose' && <div className="relative mt-6 flex items-center justify-center gap-2 text-xs text-slate-400"><ShieldCheck className={`h-4 w-4 ${updateStatus === 'ready' ? 'text-emerald-400' : 'text-slate-500'}`} />{updateStatus === 'ready' ? 'رابط التحميل الرسمي يفتح من MediaFire' : updateStatus === 'connecting' ? 'يتم التحقق من رابط التحميل من الخادم' : 'التحميل غير متاح حتى الاتصال بالخادم'}</div>}
           </section>
         </main>
         <footer className="pb-2 text-center text-xs text-slate-500">FLEXJO · صفحة تحميل التطبيق</footer>

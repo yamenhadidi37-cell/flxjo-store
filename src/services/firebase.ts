@@ -58,9 +58,10 @@ export const getFirebaseDb = (): Firestore | null => {
 export interface AppUpdateConfig {
   downloadUrl: string;
   version: string;
+  serverSynced: boolean;
 }
 
-const readAppUpdateConfig = (data: Record<string, unknown>): AppUpdateConfig => {
+const readAppUpdateConfig = (data: Record<string, unknown>): Omit<AppUpdateConfig, 'serverSynced'> => {
   const urlFields = ['تحديث عنوان URL', 'تحديث_عنوان_URL', 'updateUrl', 'downloadUrl', 'update_url'];
   const rawUrl = urlFields
     .map((field) => data[field])
@@ -74,7 +75,7 @@ const readAppUpdateConfig = (data: Record<string, unknown>): AppUpdateConfig => 
         downloadUrl = parsedUrl.toString();
       }
     } catch {
-      // Ignore invalid Firestore URLs and let the page keep its existing fallback link.
+      // Ignore invalid Firestore URLs; the page keeps downloading disabled until a valid URL arrives.
     }
   }
 
@@ -95,11 +96,18 @@ export const subscribeAppUpdateConfig = (
   onError?: (error: Error) => void,
 ): (() => void) => {
   const db = getFirebaseDb();
-  if (!db) return () => undefined;
+  if (!db) {
+    onError?.(new Error('تعذر تهيئة اتصال Firebase.'));
+    return () => undefined;
+  }
 
   return onSnapshot(
     doc(db, 'app_config', 'تحديث_المعلومات'),
-    (snapshot) => onUpdate(readAppUpdateConfig(snapshot.data() || {})),
+    { includeMetadataChanges: true },
+    (snapshot) => onUpdate({
+      ...readAppUpdateConfig(snapshot.data() || {}),
+      serverSynced: !snapshot.metadata.fromCache,
+    }),
     (error) => onError?.(error),
   );
 };
