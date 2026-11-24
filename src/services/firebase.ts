@@ -58,12 +58,13 @@ export const getFirebaseDb = (): Firestore | null => {
 export interface AppUpdateConfig {
   mobile: PlatformUpdateConfig;
   tv: PlatformUpdateConfig;
-  serverSynced: boolean;
 }
 
 export interface PlatformUpdateConfig {
   downloadUrl: string;
   version: string;
+  serverSynced: boolean;
+  error: boolean;
 }
 
 const firstValue = (data: Record<string, unknown>, fields: string[]): unknown => {
@@ -74,31 +75,20 @@ const firstValue = (data: Record<string, unknown>, fields: string[]): unknown =>
   return undefined;
 };
 
-const firstMatchingValue = (data: Record<string, unknown>, tokens: string[], valueTokens: string[]): unknown => {
-  const match = Object.entries(data).find(([key, value]) => {
-    const normalizedKey = key.toLocaleLowerCase().replace(/[\s_-]+/g, '');
-    return tokens.some((token) => normalizedKey.includes(token))
-      && valueTokens.some((token) => normalizedKey.includes(token))
-      && ((typeof value === 'string' && value.trim()) || typeof value === 'number');
-  });
-  return match?.[1];
-};
+const emptyPlatformUpdate = (serverSynced = false, error = false): PlatformUpdateConfig => ({
+  downloadUrl: '',
+  version: '',
+  serverSynced,
+  error,
+});
 
-const readPlatformUpdateConfig = (
-  data: Record<string, unknown>,
-  nestedFields: string[],
-  urlFields: string[],
-  versionFields: string[],
-): PlatformUpdateConfig => {
-  const nested = nestedFields
-    .map((field) => data[field])
-    .find((value): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value));
-  const rawUrl = firstValue(data, urlFields)
-    ?? (nested ? firstValue(nested, ['updateUrl', 'downloadUrl', 'url', 'تحديث عنوان URL']) : undefined)
-    ?? firstMatchingValue(data, nestedFields, ['url', 'رابط', 'تحديث']);
-  const rawVersion = firstValue(data, versionFields)
-    ?? (nested ? firstValue(nested, ['versionName', 'version', 'versionCode']) : undefined)
-    ?? firstMatchingValue(data, nestedFields, ['version', 'versionname', 'versioncode', 'إصدار', 'اصدار', 'نسخة']);
+const readPlatformUpdateConfig = (data: Record<string, unknown>): Omit<PlatformUpdateConfig, 'serverSynced' | 'error'> => {
+  const rawUrl = firstValue(data, [
+    'updateUrl', 'downloadUrl', 'url', 'update_url', 'تحديث عنوان URL', 'رابط التحديث', 'رابط_التحديث',
+  ]);
+  const rawVersion = firstValue(data, [
+    'versionName', 'version', 'versionCode', 'version_name', 'رقم الإصدار', 'رقم_الإصدار', 'الإصدار', 'الاصدار',
+  ]);
 
   let downloadUrl = '';
   if (typeof rawUrl === 'string') {
@@ -112,28 +102,14 @@ const readPlatformUpdateConfig = (
     }
   }
 
-  return {
-    downloadUrl,
-    version: rawVersion === undefined ? '' : String(rawVersion).trim(),
-  };
+  return { downloadUrl, version: rawVersion === undefined ? '' : String(rawVersion).trim() };
 };
 
-const readAppUpdateConfig = (data: Record<string, unknown>): Omit<AppUpdateConfig, 'serverSynced'> => ({
-  mobile: readPlatformUpdateConfig(
-    data,
-    ['mobile', 'phone', 'androidMobile', 'هاتف', 'الهاتف', 'موبايل', 'تحديث_الهاتف', 'تحديث الهاتف'],
-    ['mobileUpdateUrl', 'phoneUpdateUrl', 'androidMobileUpdateUrl', 'mobileDownloadUrl', 'phoneDownloadUrl', 'رابط_تحديث_الهاتف', 'رابط تحديث الهاتف', 'تحديث_الهاتف_URL', 'رابط الهاتف'],
-    ['mobileVersionName', 'phoneVersionName', 'androidMobileVersionName', 'mobileVersion', 'phoneVersion', 'mobileVersionCode', 'phoneVersionCode', 'إصدار_الهاتف', 'اصدار_الهاتف', 'رقم_إصدار_الهاتف'],
-  ),
-  tv: readPlatformUpdateConfig(
-    data,
-    ['tv', 'androidTv', 'screen', 'television', 'شاشة', 'الشاشة', 'تلفاز', 'التلفاز', 'تلفزيون', 'تحديث_الشاشة', 'تحديث الشاشة', 'تحديث_التلفاز'],
-    ['tvUpdateUrl', 'androidTvUpdateUrl', 'screenUpdateUrl', 'tvDownloadUrl', 'رابط_تحديث_الشاشة', 'رابط تحديث الشاشة', 'تحديث_الشاشة_URL', 'رابط_تحديث_التلفاز', 'رابط التلفاز'],
-    ['tvVersionName', 'androidTvVersionName', 'screenVersionName', 'tvVersion', 'androidTvVersion', 'tvVersionCode', 'androidTvVersionCode', 'إصدار_الشاشة', 'اصدار_الشاشة', 'رقم_إصدار_الشاشة'],
-  ),
-});
-
-/** Listen for live changes to the app's download URL and version in Firestore. */
+/**
+ * Phone updates use app_config/update_info.
+ * TV updates use an independent document, preferring tv_update_config/update_info,
+ * then the Arabic collection and app_config/update_info_tv fallbacks.
+ */
 export const subscribeAppUpdateConfig = (
   onUpdate: (config: AppUpdateConfig) => void,
   onError?: (error: Error) => void,
@@ -144,15 +120,73 @@ export const subscribeAppUpdateConfig = (
     return () => undefined;
   }
 
-  return onSnapshot(
-    doc(db, 'app_config', 'تحديث_المعلومات'),
+  let mobile = emptyPlatformUpdate();
+  const tvPaths = [
+    ['tv_update_config', 'update_info'],
+    ['تحديث_الشاشة_tv', 'update_info'],
+    ['app_config', 'update_info_tv'],
+  ] as const;
+  const tvSnapshots = tvPaths.map(() => ({
+    config: emptyPlatformUpdate(),
+    exists: false,
+    serverSynced: false,
+    error: false,
+  }));
+  const emit = () => {
+    const tvSettled = tvSnapshots.every((snapshot) => snapshot.serverSynced);
+    const tvSource = tvSnapshots.find((snapshot) => snapshot.serverSynced && snapshot.exists && snapshot.config.downloadUrl)
+      ?? tvSnapshots.find((snapshot) => snapshot.serverSynced && snapshot.exists);
+    const tvConfig = tvSource?.config || emptyPlatformUpdate();
+    onUpdate({
+      mobile,
+      tv: {
+        ...tvConfig,
+        serverSynced: tvSettled,
+        error: tvSettled && tvSnapshots.every((snapshot) => snapshot.error),
+      },
+    });
+  };
+
+  const unsubscribers = [onSnapshot(
+    doc(db, 'app_config', 'update_info'),
     { includeMetadataChanges: true },
-    (snapshot) => onUpdate({
-      ...readAppUpdateConfig(snapshot.data() || {}),
-      serverSynced: !snapshot.metadata.fromCache,
-    }),
-    (error) => onError?.(error),
-  );
+    (snapshot) => {
+      const data = snapshot.data() || {};
+      mobile = {
+        ...readPlatformUpdateConfig(data),
+        serverSynced: !snapshot.metadata.fromCache,
+        error: false,
+      };
+      emit();
+    },
+    () => {
+      mobile = emptyPlatformUpdate(true, true);
+      emit();
+    },
+  )];
+
+  tvPaths.forEach(([collectionName, documentName], index) => {
+    unsubscribers.push(onSnapshot(
+      doc(db, collectionName, documentName),
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        const serverSynced = !snapshot.metadata.fromCache;
+        tvSnapshots[index] = {
+          config: { ...readPlatformUpdateConfig(snapshot.data() || {}), serverSynced, error: false },
+          exists: snapshot.exists(),
+          serverSynced,
+          error: false,
+        };
+        emit();
+      },
+      () => {
+        tvSnapshots[index] = { config: emptyPlatformUpdate(true, true), exists: false, serverSynced: true, error: true };
+        emit();
+      },
+    ));
+  });
+
+  return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
 };
 
 export interface FetchResult {

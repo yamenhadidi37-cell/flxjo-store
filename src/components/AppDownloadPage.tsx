@@ -38,24 +38,32 @@ const initialStatuses: Record<DeviceKey, AppUpdateStatus> = {
 export const AppDownloadPage: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(modeFromPath);
   const [updates, setUpdates] = useState<Record<DeviceKey, PlatformUpdateConfig>>({
-    mobile: { downloadUrl: '', version: '' },
-    tv: { downloadUrl: '', version: '' },
+    mobile: { downloadUrl: '', version: '', serverSynced: false, error: false },
+    tv: { downloadUrl: '', version: '', serverSynced: false, error: false },
   });
   const [statuses, setStatuses] = useState(initialStatuses);
 
   useEffect(() => subscribeAppUpdateConfig(
-    ({ mobile, tv, serverSynced }) => {
-      if (!serverSynced) return;
-      const nextUpdates = { mobile, tv };
-      setUpdates(nextUpdates);
-      setStatuses({
-        mobile: mobile.downloadUrl ? 'ready' : 'unavailable',
-        tv: tv.downloadUrl ? 'ready' : 'unavailable',
-      });
+    ({ mobile, tv }) => {
+      setUpdates((current) => ({
+        mobile: mobile.serverSynced ? mobile : current.mobile,
+        tv: tv.serverSynced ? tv : current.tv,
+      }));
+      setStatuses((current) => ({
+        mobile: mobile.serverSynced
+          ? mobile.error ? 'error' : mobile.downloadUrl ? 'ready' : 'unavailable'
+          : current.mobile,
+        tv: tv.serverSynced
+          ? tv.error ? 'error' : tv.downloadUrl ? 'ready' : 'unavailable'
+          : current.tv,
+      }));
     },
     (error) => {
       console.warn('[App update config] Could not read Firestore settings:', error);
-      setUpdates({ mobile: { downloadUrl: '', version: '' }, tv: { downloadUrl: '', version: '' } });
+      setUpdates({
+        mobile: { downloadUrl: '', version: '', serverSynced: true, error: true },
+        tv: { downloadUrl: '', version: '', serverSynced: true, error: true },
+      });
       setStatuses({ mobile: 'error', tv: 'error' });
     },
   ), []);
