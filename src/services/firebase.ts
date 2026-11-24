@@ -56,16 +56,49 @@ export const getFirebaseDb = (): Firestore | null => {
 };
 
 export interface AppUpdateConfig {
-  downloadUrl: string;
-  version: string;
+  mobile: PlatformUpdateConfig;
+  tv: PlatformUpdateConfig;
   serverSynced: boolean;
 }
 
-const readAppUpdateConfig = (data: Record<string, unknown>): Omit<AppUpdateConfig, 'serverSynced'> => {
-  const urlFields = ['تحديث عنوان URL', 'تحديث_عنوان_URL', 'updateUrl', 'downloadUrl', 'update_url'];
-  const rawUrl = urlFields
+export interface PlatformUpdateConfig {
+  downloadUrl: string;
+  version: string;
+}
+
+const firstValue = (data: Record<string, unknown>, fields: string[]): unknown => {
+  for (const field of fields) {
+    const value = data[field];
+    if (value !== undefined && value !== null && String(value).trim()) return value;
+  }
+  return undefined;
+};
+
+const firstMatchingValue = (data: Record<string, unknown>, tokens: string[], valueTokens: string[]): unknown => {
+  const match = Object.entries(data).find(([key, value]) => {
+    const normalizedKey = key.toLocaleLowerCase().replace(/[\s_-]+/g, '');
+    return tokens.some((token) => normalizedKey.includes(token))
+      && valueTokens.some((token) => normalizedKey.includes(token))
+      && ((typeof value === 'string' && value.trim()) || typeof value === 'number');
+  });
+  return match?.[1];
+};
+
+const readPlatformUpdateConfig = (
+  data: Record<string, unknown>,
+  nestedFields: string[],
+  urlFields: string[],
+  versionFields: string[],
+): PlatformUpdateConfig => {
+  const nested = nestedFields
     .map((field) => data[field])
-    .find((value) => typeof value === 'string' && value.trim());
+    .find((value): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value));
+  const rawUrl = firstValue(data, urlFields)
+    ?? (nested ? firstValue(nested, ['updateUrl', 'downloadUrl', 'url', 'تحديث عنوان URL']) : undefined)
+    ?? firstMatchingValue(data, nestedFields, ['url', 'رابط', 'تحديث']);
+  const rawVersion = firstValue(data, versionFields)
+    ?? (nested ? firstValue(nested, ['versionName', 'version', 'versionCode']) : undefined)
+    ?? firstMatchingValue(data, nestedFields, ['version', 'versionname', 'versioncode', 'إصدار', 'اصدار', 'نسخة']);
 
   let downloadUrl = '';
   if (typeof rawUrl === 'string') {
@@ -75,20 +108,30 @@ const readAppUpdateConfig = (data: Record<string, unknown>): Omit<AppUpdateConfi
         downloadUrl = parsedUrl.toString();
       }
     } catch {
-      // Ignore invalid Firestore URLs; the page keeps downloading disabled until a valid URL arrives.
+      // Keep only valid HTTP(S) download links.
     }
   }
-
-  const versionFields = ['versionName', 'version', 'versionCode'];
-  const rawVersion = versionFields
-    .map((field) => data[field])
-    .find((value) => (typeof value === 'string' && value.trim()) || typeof value === 'number');
 
   return {
     downloadUrl,
     version: rawVersion === undefined ? '' : String(rawVersion).trim(),
   };
 };
+
+const readAppUpdateConfig = (data: Record<string, unknown>): Omit<AppUpdateConfig, 'serverSynced'> => ({
+  mobile: readPlatformUpdateConfig(
+    data,
+    ['mobile', 'phone', 'androidMobile', 'هاتف', 'الهاتف', 'موبايل', 'تحديث_الهاتف', 'تحديث الهاتف'],
+    ['mobileUpdateUrl', 'phoneUpdateUrl', 'androidMobileUpdateUrl', 'mobileDownloadUrl', 'phoneDownloadUrl', 'رابط_تحديث_الهاتف', 'رابط تحديث الهاتف', 'تحديث_الهاتف_URL', 'رابط الهاتف'],
+    ['mobileVersionName', 'phoneVersionName', 'androidMobileVersionName', 'mobileVersion', 'phoneVersion', 'mobileVersionCode', 'phoneVersionCode', 'إصدار_الهاتف', 'اصدار_الهاتف', 'رقم_إصدار_الهاتف'],
+  ),
+  tv: readPlatformUpdateConfig(
+    data,
+    ['tv', 'androidTv', 'screen', 'television', 'شاشة', 'الشاشة', 'تلفاز', 'التلفاز', 'تلفزيون', 'تحديث_الشاشة', 'تحديث الشاشة', 'تحديث_التلفاز'],
+    ['tvUpdateUrl', 'androidTvUpdateUrl', 'screenUpdateUrl', 'tvDownloadUrl', 'رابط_تحديث_الشاشة', 'رابط تحديث الشاشة', 'تحديث_الشاشة_URL', 'رابط_تحديث_التلفاز', 'رابط التلفاز'],
+    ['tvVersionName', 'androidTvVersionName', 'screenVersionName', 'tvVersion', 'androidTvVersion', 'tvVersionCode', 'androidTvVersionCode', 'إصدار_الشاشة', 'اصدار_الشاشة', 'رقم_إصدار_الشاشة'],
+  ),
+});
 
 /** Listen for live changes to the app's download URL and version in Firestore. */
 export const subscribeAppUpdateConfig = (
