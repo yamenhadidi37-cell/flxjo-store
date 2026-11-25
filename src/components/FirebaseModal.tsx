@@ -142,7 +142,7 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({
               ) : (
                 <>
                   <AlertCircle className="w-4 h-4" />
-                  <span>مفتاح التجربة / في انتظار المفتاح الحقيقي</span>
+                  <span>{status.error ? 'تعذر الاتصال بقاعدة البيانات' : 'غير متصل بقاعدة البيانات'}</span>
                 </>
               )}
             </span>
