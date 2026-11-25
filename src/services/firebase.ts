@@ -1,9 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   initializeFirestore,
-  collection,
   doc,
-  getDocs,
   onSnapshot,
   Firestore,
 } from 'firebase/firestore';
@@ -208,122 +206,53 @@ export interface FetchResult {
   media: MediaItem[];
   channels: LiveChannel[];
   folders: FolderItem[];
-  source: 'firestore' | 'seed';
+  source: 'static' | 'seed';
   error: string | null;
 }
 
 /**
- * STRICTLY READ-ONLY FETCH
- * Reads all 292 works from Firestore collections: vip_media, live_channels, folders.
- * Does NOT perform any writes, modifications, or deletions.
+ * Read the build-generated catalog snapshot. Visitors do not query the full
+ * Firestore collections, which avoids spending the project's daily read quota
+ * once per browser visit and works around console-browser transport limits.
  */
 export const fetchAllMediaData = async (): Promise<FetchResult> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
-    const db = getFirebaseDb();
-    if (!db) {
-      throw new Error('تعذر تهيئة اتصال Firebase.');
+    const response = await Promise.race([
+      fetch('/data/catalog.json', { cache: 'no-cache' }),
+      new Promise<Response>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('انتهت مهلة تحميل نسخة الكتالوج.')), 10000);
+      }),
+    ]);
+    if (!response.ok) throw new Error(`تعذر تحميل نسخة الكتالوج (${response.status}).`);
+
+    const catalog = await response.json() as {
+      schemaVersion?: number;
+      media?: MediaItem[];
+      channels?: LiveChannel[];
+      folders?: FolderItem[];
+    };
+    if (catalog.schemaVersion !== 1 || !Array.isArray(catalog.media) || catalog.media.length === 0) {
+      throw new Error('نسخة الكتالوج المنشورة غير صالحة أو لا تحتوي على أعمال.');
     }
 
-    // 1. Fetch all items from vip_media (Read-only)
-    const mediaSnap = await getDocs(collection(db, 'vip_media'));
-    const firestoreMedia: MediaItem[] = [];
-
-    mediaSnap.forEach((doc) => {
-      const data = doc.data();
-      const rawTitle = (data.title || data.name || '').trim();
-      const rawEpisodes = Array.isArray(data.episodes) ? data.episodes : [];
-
-      firestoreMedia.push({
-        id: doc.id,
-        title: rawTitle || 'عمل بدون عنوان',
-        type: data.type === 'movie' ? 'movie' : (data.type === 'anime' ? 'anime' : 'tv'),
-        posterUrl: data.posterUrl || '',
-        backdropUrl: data.backdropUrl || data.posterUrl || '',
-        category: data.category ? String(data.category).trim() : 'general',
-        parentSeries: data.parentSeries ? String(data.parentSeries).trim() : '',
-        seasonName: data.seasonName ? String(data.seasonName).trim() : '',
-        hidden: Boolean(data.hidden),
-        videoUrl: data.videoUrl || '',
-        episodes: rawEpisodes.map((ep: any, idx: number) => ({
-          title: ep.title || `الحلقة ${idx + 1}`,
-          videoUrl: ep.videoUrl || '',
-          hidden: Boolean(ep.hidden),
-          duration: ep.duration || '45 دقيقة',
-          thumbnail: ep.thumbnail || '',
-          overview: ep.overview || '',
-          episodeNumber: ep.episodeNumber || idx + 1,
-        })),
-        folderId: data.folderId ? String(data.folderId).trim() : '',
-        year: data.year || '',
-        rating: data.rating || '',
-        story: data.story || data.description || '',
-        cast: Array.isArray(data.cast) ? data.cast : [],
-        duration: data.duration,
-        quality: data.quality || 'FHD 1080p',
-        views: typeof data.views === 'number' ? data.views : 0,
-      });
-    });
-
-    // 2. Fetch all channels from live_channels (Read-only)
-    const liveSnap = await getDocs(collection(db, 'live_channels'));
-    const firestoreChannels: LiveChannel[] = [];
-
-    liveSnap.forEach((doc) => {
-      const data = doc.data();
-      if (data.hidden) return;
-
-      const channelName = (data.nameAr || data.name || data.nameEn || 'قناة بث مباشر').trim();
-      firestoreChannels.push({
-        id: doc.id,
-        name: channelName,
-        logoUrl: data.logoUrl || '',
-        streamUrl: data.streamUrl || '',
-        category: data.category || 'general',
-        quality: data.isHd ? 'HD' : (data.quality || 'FHD'),
-        currentProgram: data.currentProgram || '',
-      });
-    });
-
-    // 3. Fetch all folders from folders (Read-only)
-    const foldersSnap = await getDocs(collection(db, 'folders'));
-    const firestoreFolders: FolderItem[] = [];
-
-    foldersSnap.forEach((doc) => {
-      const data = doc.data();
-      if (data.hidden) return;
-
-      const folderName = (data.title || data.name || 'مجلد').trim();
-      firestoreFolders.push({
-        id: doc.id,
-        name: folderName,
-        icon: data.icon || 'Folder',
-        description: data.description || '',
-        coverUrl: data.posterUrl || data.coverUrl || '',
-        itemCount: typeof data.itemCount === 'number' ? data.itemCount : 0,
-      });
-    });
-
     return {
-      media: firestoreMedia,
-      channels: firestoreChannels,
-      folders: firestoreFolders,
-      source: 'firestore',
+      media: catalog.media,
+      channels: Array.isArray(catalog.channels) ? catalog.channels : [],
+      folders: Array.isArray(catalog.folders) ? catalog.folders : [],
+      source: 'static',
       error: null,
     };
-  } catch (err: any) {
-    console.error('[Firebase Fetch Live Error]:', err);
-    const code = typeof err?.code === 'string' ? err.code.toLowerCase() : '';
-    const message = typeof err?.message === 'string' ? err.message : '';
-    const isQuotaError =
-      code.includes('resource-exhausted') || /quota exceeded|resource exhausted|\b429\b/i.test(message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : '';
     return {
       media: [],
       channels: [],
       folders: [],
       source: 'seed',
-      error: isQuotaError
-        ? 'رفض Firestore الطلب بسبب تجاوز حصة أو حدّ الطلبات في مشروع Firebase (429). افحص صفحة Usage وQuotas في Firebase/Google Cloud Console؛ هذا الخلل من جهة المشروع وليس خاصاً بمتصفح PlayStation وحده.'
-        : message || 'تعذر الاتصال بـ Firestore. تحقق من اتصال الإنترنت أو إعدادات قاعدة البيانات.',
+      error: message || 'نسخة بيانات المكتبة غير متوفرة حالياً على الموقع. يرجى المحاولة لاحقاً.',
     };
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
   }
 };

@@ -62,7 +62,7 @@ export default function App() {
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [firebaseStatus, setFirebaseStatus] = useState<{
-    source: 'firestore' | 'seed';
+    source: 'static' | 'seed';
     error: string | null;
     mediaCount: number;
     channelsCount: number;
@@ -101,7 +101,7 @@ export default function App() {
     setIsLoading(true);
     const result: FetchResult = await fetchAllMediaData();
 
-    if (result.source === 'firestore') {
+    if (result.source === 'static') {
       setRawMedia(result.media);
       setLiveChannels(result.channels);
       setFolders(result.folders);
@@ -339,10 +339,10 @@ export default function App() {
           className="mx-auto mt-3 flex w-full max-w-7xl flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <strong className="block text-amber-300">تعذر تحديث المحتوى من الخادم</strong>
+            <strong className="block text-amber-300">تعذر تحميل كتالوج FLEXJO</strong>
             <p className="mt-1 text-xs leading-relaxed text-amber-100/90">{firebaseStatus.error}</p>
             {rawMedia.length > 0 && (
-              <p className="mt-1 text-xs text-slate-300">نعرض آخر نسخة محفوظة من المحتوى إلى أن يعود الاتصال.</p>
+              <p className="mt-1 text-xs text-slate-300">نعرض آخر نسخة محفوظة على هذا الجهاز إلى أن تتوفر النسخة المنشورة.</p>
             )}
           </div>
           <div className="flex shrink-0 gap-2">
