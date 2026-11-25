@@ -22,7 +22,7 @@ interface FirebaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   status: {
-    source: 'firestore' | 'seed';
+    source: 'static' | 'seed';
     error: string | null;
     mediaCount: number;
     channelsCount: number;
@@ -49,7 +49,7 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({
     setStoredApiKey(apiKeyInput);
     await onRefresh();
     setIsSyncing(false);
-    setSuccessMessage('تم تحديث إعدادات الاتصال وفحص قاعدة البيانات.');
+    setSuccessMessage('تم حفظ المفتاح ومحاولة إعادة تحميل نسخة الكتالوج المنشورة.');
   };
 
   const handleReset = async () => {
@@ -70,8 +70,8 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({
               <Database className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">إعدادات واتصال Firebase Firestore</h2>
-              <span className="text-xs text-slate-400">مراقبة وفهرسة المجموعات الثلاث (وضع القراءة فقط)</span>
+              <h2 className="text-lg font-bold text-white">بيانات FLEXJO ومصدر المكتبة</h2>
+              <span className="text-xs text-slate-400">المكتبة تُحمّل من ملف منشور لتقليل ضغط Firestore</span>
             </div>
           </div>
           <button
@@ -86,8 +86,8 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({
         <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3.5 flex items-start gap-3">
           <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
           <div className="text-xs text-emerald-200 leading-relaxed">
-            <strong className="font-bold block text-emerald-300 mb-0.5">ضمان القراءة فقط 100% (Strict Read-Only):</strong>
-            التطبيق مصمم برمجياً ليقوم بقراءة البيانات حصراً من مجموعاتك دون أي صلاحيات كتابة أو تعديل أو حذف، تماماً كما طلبت لحماية بياناتك.
+            <strong className="font-bold block text-emerald-300 mb-0.5">كتالوج للقراءة فقط:</strong>
+            يتم توليد نسخة المكتبة عند بناء الموقع، ثم يقرأها الزوار من الاستضافة بدلاً من تحميل كل أعمال Firestore عند كل زيارة.
           </div>
         </div>
 
@@ -118,7 +118,7 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({
           </div>
         </div>
 
-        {/* Connection Source Status */}
+          {/* Catalog Source Status */}
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-400 font-medium">مشروع Firebase المرتبط:</span>
@@ -128,21 +128,21 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({
           </div>
 
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-400 font-medium">حالة الاتصال المباشر:</span>
+            <span className="text-slate-400 font-medium">مصدر بيانات المكتبة:</span>
             <span
               className={`flex items-center gap-1.5 font-bold ${
-                status.source === 'firestore' ? 'text-emerald-400' : 'text-amber-400'
+                status.source === 'static' ? 'text-emerald-400' : 'text-amber-400'
               }`}
             >
-              {status.source === 'firestore' ? (
+              {status.source === 'static' ? (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>متصل مباشرة بـ Firestore الحية</span>
+                  <span>نسخة ثابتة منشورة على الموقع</span>
                 </>
               ) : (
                 <>
                   <AlertCircle className="w-4 h-4" />
-                  <span>{status.error ? 'تعذر الاتصال بقاعدة البيانات' : 'غير متصل بقاعدة البيانات'}</span>
+                  <span>نسخة الكتالوج غير متوفرة</span>
                 </>
               )}
             </span>
@@ -160,7 +160,7 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({
           <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Key className="w-3.5 h-3.5 text-amber-400" />
-              <span>مفتاح Firebase Web API Key:</span>
+              <span>مفتاح Firebase لإعدادات التحديث:</span>
             </span>
             <span className="text-[11px] text-slate-500 font-normal">
               (إذا كان مفتاحك يحتوي نجوم AIz*****2A)
@@ -175,7 +175,7 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({
             dir="ltr"
           />
           <p className="text-[11px] text-slate-400 leading-normal">
-            يمكنك إدخال مفتاح الـ API الحقيقي الخاص بك هنا في أي وقت إذا أردت تحديث الاتصال المباشر.
+            يُستخدم المفتاح لإعدادات تحديث الهاتف وTV؛ لا يؤثر على قراءة كتالوج الموقع الثابت.
           </p>
         </div>
 
@@ -207,7 +207,7 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({
               className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'جارٍ الفحص...' : 'حفظ وفحص الاتصال'}</span>
+              <span>{isSyncing ? 'جارٍ التحميل...' : 'حفظ وإعادة تحميل الكتالوج'}</span>
             </button>
           </div>
         </div>
