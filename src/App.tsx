@@ -70,9 +70,9 @@ export default function App() {
   }>({
     source: 'seed',
     error: null,
-    mediaCount: 0,
-    channelsCount: 0,
-    foldersCount: 0,
+    mediaCount: rawMedia.length,
+    channelsCount: liveChannels.length,
+    foldersCount: folders.length,
   });
 
   const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState<boolean>(false);
@@ -100,37 +100,47 @@ export default function App() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     const result: FetchResult = await fetchAllMediaData();
-    setRawMedia(result.media);
-    setLiveChannels(result.channels);
-    setFolders(result.folders);
 
-    // Save to instant cache
-    try {
-      if (result.media.length > 0) {
+    if (result.source === 'firestore') {
+      setRawMedia(result.media);
+      setLiveChannels(result.channels);
+      setFolders(result.folders);
+
+      // Update the cache only after a successful server read, including empty collections.
+      try {
         localStorage.setItem('flexjo_cache_raw_media', JSON.stringify(result.media));
-      }
-      if (result.channels.length > 0) {
         localStorage.setItem('flexjo_cache_channels', JSON.stringify(result.channels));
-      }
-      if (result.folders.length > 0) {
         localStorage.setItem('flexjo_cache_folders', JSON.stringify(result.folders));
+      } catch {
+        // Storage can be unavailable or full, but live Firestore data remains usable.
       }
-    } catch {
-      // quota or private browsing
+
+      setFirebaseStatus({
+        source: result.source,
+        error: null,
+        mediaCount: result.media.length,
+        channelsCount: result.channels.length,
+        foldersCount: result.folders.length,
+      });
+    } else {
+      // Keep the last good in-memory/cache snapshot instead of replacing it with empty arrays.
+      setFirebaseStatus((current) => ({
+        ...current,
+        source: result.source,
+        error: result.error,
+      }));
     }
 
-    setFirebaseStatus({
-      source: result.source,
-      error: result.error,
-      mediaCount: result.media.length,
-      channelsCount: result.channels.length,
-      foldersCount: result.folders.length,
-    });
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    loadData();
+    const isAppDownloadRoute = ['/app', '/app/mobile', '/app/tv'].includes(window.location.pathname);
+    if (isAppDownloadRoute) {
+      setIsLoading(false);
+      return;
+    }
+    void loadData();
   }, [loadData]);
 
   // Grouping multi-season series and movies according to user schema
@@ -195,12 +205,20 @@ export default function App() {
 
   // Save watchlist to localStorage
   useEffect(() => {
-    localStorage.setItem('flexjo_watchlist', JSON.stringify(watchlistIds));
+    try {
+      localStorage.setItem('flexjo_watchlist', JSON.stringify(watchlistIds));
+    } catch {
+      // Keep the in-memory watchlist when browser storage is unavailable.
+    }
   }, [watchlistIds]);
 
   // Save watch history to localStorage
   useEffect(() => {
-    localStorage.setItem('flexjo_history', JSON.stringify(watchHistory));
+    try {
+      localStorage.setItem('flexjo_history', JSON.stringify(watchHistory));
+    } catch {
+      // Keep the in-memory history when browser storage is unavailable.
+    }
   }, [watchHistory]);
 
   // Navigation handlers with clean URL history updates
@@ -313,6 +331,37 @@ export default function App() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
+
+      {firebaseStatus.error && (
+        <section
+          role="alert"
+          dir="rtl"
+          className="mx-auto mt-3 flex w-full max-w-7xl flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <strong className="block text-amber-300">تعذر تحديث المحتوى من الخادم</strong>
+            <p className="mt-1 text-xs leading-relaxed text-amber-100/90">{firebaseStatus.error}</p>
+            {rawMedia.length > 0 && (
+              <p className="mt-1 text-xs text-slate-300">نعرض آخر نسخة محفوظة من المحتوى إلى أن يعود الاتصال.</p>
+            )}
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button
+              onClick={() => void loadData()}
+              disabled={isLoading}
+              className="rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-slate-950 disabled:opacity-50"
+            >
+              {isLoading ? 'جارٍ الفحص...' : 'إعادة الفحص'}
+            </button>
+            <button
+              onClick={() => setIsFirebaseModalOpen(true)}
+              className="rounded-lg border border-amber-300/40 px-3 py-2 text-xs font-semibold text-amber-100"
+            >
+              التفاصيل
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Main App Content Router */}
       <main className="flex-1">

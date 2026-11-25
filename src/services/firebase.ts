@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
-  getFirestore,
+  initializeFirestore,
   collection,
   doc,
   getDocs,
@@ -23,14 +23,22 @@ export const DEFAULT_FIREBASE_CONFIG = {
 };
 
 export const getStoredApiKey = (): string => {
-  return localStorage.getItem(STORAGE_KEY_API_KEY) || DEFAULT_FIREBASE_CONFIG.apiKey;
+  try {
+    return localStorage.getItem(STORAGE_KEY_API_KEY) || DEFAULT_FIREBASE_CONFIG.apiKey;
+  } catch {
+    return DEFAULT_FIREBASE_CONFIG.apiKey;
+  }
 };
 
 export const setStoredApiKey = (key: string): void => {
-  if (key && key.trim()) {
-    localStorage.setItem(STORAGE_KEY_API_KEY, key.trim());
-  } else {
-    localStorage.removeItem(STORAGE_KEY_API_KEY);
+  try {
+    if (key && key.trim()) {
+      localStorage.setItem(STORAGE_KEY_API_KEY, key.trim());
+    } else {
+      localStorage.removeItem(STORAGE_KEY_API_KEY);
+    }
+  } catch {
+    // Some console browsers or privacy modes disable local storage.
   }
 };
 
@@ -46,7 +54,14 @@ export const getFirebaseDb = (): Firestore | null => {
 
     const app = getApps().length === 0 ? initializeApp(config) : getApp();
     if (!firestoreInstance) {
-      firestoreInstance = getFirestore(app);
+      const isPlayStationBrowser =
+        typeof navigator !== 'undefined' && /PlayStation\s*(?:4|5)/i.test(navigator.userAgent);
+      firestoreInstance = initializeFirestore(
+        app,
+        isPlayStationBrowser
+          ? { experimentalForceLongPolling: true, experimentalAutoDetectLongPolling: false }
+          : {},
+      );
     }
     return firestoreInstance;
   } catch (err) {
@@ -297,12 +312,18 @@ export const fetchAllMediaData = async (): Promise<FetchResult> => {
     };
   } catch (err: any) {
     console.error('[Firebase Fetch Live Error]:', err);
+    const code = typeof err?.code === 'string' ? err.code.toLowerCase() : '';
+    const message = typeof err?.message === 'string' ? err.message : '';
+    const isQuotaError =
+      code.includes('resource-exhausted') || /quota exceeded|resource exhausted|\b429\b/i.test(message);
     return {
       media: [],
       channels: [],
       folders: [],
       source: 'seed',
-      error: err.message || 'حدث خطأ أثناء جلب البيانات من Firebase.',
+      error: isQuotaError
+        ? 'رفض Firestore الطلب بسبب تجاوز حصة أو حدّ الطلبات في مشروع Firebase (429). افحص صفحة Usage وQuotas في Firebase/Google Cloud Console؛ هذا الخلل من جهة المشروع وليس خاصاً بمتصفح PlayStation وحده.'
+        : message || 'تعذر الاتصال بـ Firestore. تحقق من اتصال الإنترنت أو إعدادات قاعدة البيانات.',
     };
   }
 };
