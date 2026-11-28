@@ -47,14 +47,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   ), []);
 
   const playbackKey = `${media.id}:${isMovie ? 'movie' : `${seasonIndex}:${episodeIndex}`}`;
-  const adLinkHash = [...playbackKey].reduce(
-    (hash, character) => (hash * 31 + character.charCodeAt(0)) | 0,
-    0,
-  );
-  const activeAdUrl = preRollConfig.adLinks.length
-    ? preRollConfig.adLinks[Math.abs(adLinkHash) % preRollConfig.adLinks.length]
-    : '';
-  const shouldShowPreRoll = preRollConfig.enabled && Boolean(activeAdUrl) && passedPlaybackKey !== playbackKey;
+  const shouldShowPreRoll = preRollConfig.enabled && preRollConfig.adMediaUrls.length > 0 && passedPlaybackKey !== playbackKey;
 
   // Resolve current episode and season
   let currentEpisode: Episode | null = null;
@@ -128,8 +121,9 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
         {/* StreamPlayer with strict sandbox and anti-popup engine */}
         {shouldShowPreRoll ? (
           <PreRollAdInterstitial
-            key={`${playbackKey}:${activeAdUrl}`}
-            adUrl={activeAdUrl}
+            key={`${playbackKey}:${preRollConfig.adMediaUrls.join('|')}`}
+            adMediaUrls={preRollConfig.adMediaUrls}
+            playbackKey={playbackKey}
             skipAfterSeconds={preRollConfig.skipAfterSeconds}
             onSkip={() => setPassedPlaybackKey(playbackKey)}
           />

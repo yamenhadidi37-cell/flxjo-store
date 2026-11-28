@@ -206,24 +206,29 @@ export const subscribeAppUpdateConfig = (
 
 export interface PreRollAdConfig {
   enabled: boolean;
-  adLinks: string[];
+  adMediaUrls: string[];
   skipAfterSeconds: number;
 }
 
 export const DEFAULT_PRE_ROLL_AD_CONFIG: PreRollAdConfig = {
   enabled: true,
-  adLinks: [
-    'https://smugtone.com/d-m/F/zld.G-NOv/ZeGNUP/vermj9/uXZmUilukYP/TGcF2XNbzwAnwvOnD/kbtKNlzpYC3EM/D/Au5/MBwz',
-    'https://smugtone.com/dLmwF.z_dMGANUvdZ/GkUK/IeumM9Su/ZTUql-kgPLTxce2/NRzEAdwEOADfkntwN/zlYw3EMXDjAh5sMaynZ/sQaZW/1TpddYD/0/xT',
+  adMediaUrls: [
+    'https://www.dismal-library.pro/152327/199275/559492_3f3f4y.mp4',
+    'https://www.dismal-library.pro/152327/199275/559492_3f3f4y.webm',
+    'https://www.dismal-library.pro/152327/199275/559492_3f3f4y480.mp4',
+    'https://www.dismal-library.pro/152327/199275/559492_3f3f4y480.webm',
+    'https://www.dismal-library.pro/152327/199275/559492_3f3f4y360.mp4',
+    'https://www.dismal-library.pro/152327/199275/559492_3f3f4y360.webm',
   ],
   skipAfterSeconds: 5,
 };
 
-const normalizeAdLink = (value: unknown): string => {
+const normalizeAdMediaUrl = (value: unknown): string => {
   if (typeof value !== 'string') return '';
   try {
     const url = new URL(value.trim());
-    return url.protocol === 'https:' ? url.toString() : '';
+    const isSupportedVideo = /\.(mp4|webm)$/i.test(url.pathname);
+    return url.protocol === 'https:' && isSupportedVideo ? url.toString() : '';
   } catch {
     return '';
   }
@@ -244,10 +249,10 @@ export const subscribePreRollAdConfig = (
     doc(db, 'app_config', 'preroll_ads'),
     (snapshot) => {
       const data = snapshot.data() || {};
-      const hasConfiguredLinks = Array.isArray(data.adLinks);
-      const adLinks = hasConfiguredLinks
-        ? data.adLinks.map(normalizeAdLink).filter(Boolean)
-        : DEFAULT_PRE_ROLL_AD_CONFIG.adLinks;
+      const hasConfiguredMediaUrls = Array.isArray(data.adMediaUrls);
+      const adMediaUrls = hasConfiguredMediaUrls
+        ? data.adMediaUrls.map(normalizeAdMediaUrl).filter(Boolean)
+        : DEFAULT_PRE_ROLL_AD_CONFIG.adMediaUrls;
       const requestedDelay = Number(data.skipAfterSeconds);
       const skipAfterSeconds = Number.isFinite(requestedDelay)
         ? Math.min(60, Math.max(0, Math.floor(requestedDelay)))
@@ -255,7 +260,7 @@ export const subscribePreRollAdConfig = (
 
       onUpdate({
         enabled: typeof data.enabled === 'boolean' ? data.enabled : true,
-        adLinks,
+        adMediaUrls,
         skipAfterSeconds,
       });
     },

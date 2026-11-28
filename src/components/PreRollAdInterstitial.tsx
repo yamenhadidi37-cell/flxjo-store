@@ -1,19 +1,39 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ExternalLink, ShieldAlert } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ShieldAlert } from 'lucide-react';
 
 interface PreRollAdInterstitialProps {
-  adUrl: string;
+  adMediaUrls: string[];
+  playbackKey: string;
   skipAfterSeconds: number;
   onSkip: () => void;
 }
 
+const shuffleSources = (sources: string[]): string[] => {
+  const shuffled = [...sources];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+  }
+  return shuffled;
+};
+
+const getSourceType = (url: string): string => (
+  url.split('?')[0].toLowerCase().endsWith('.webm') ? 'video/webm' : 'video/mp4'
+);
+
 export const PreRollAdInterstitial: React.FC<PreRollAdInterstitialProps> = ({
-  adUrl,
+  adMediaUrls,
+  playbackKey,
   skipAfterSeconds,
   onSkip,
 }) => {
   const [secondsLeft, setSecondsLeft] = useState(skipAfterSeconds);
+  const [videoFailed, setVideoFailed] = useState(false);
   const skipButtonRef = useRef<HTMLButtonElement>(null);
+  const sourceOrder = useMemo(
+    () => shuffleSources(adMediaUrls),
+    [adMediaUrls, playbackKey],
+  );
 
   useEffect(() => {
     const endsAt = Date.now() + Math.max(0, skipAfterSeconds) * 1000;
@@ -24,7 +44,7 @@ export const PreRollAdInterstitial: React.FC<PreRollAdInterstitialProps> = ({
     updateRemaining();
     const timer = window.setInterval(updateRemaining, 250);
     return () => window.clearInterval(timer);
-  }, [adUrl, skipAfterSeconds]);
+  }, [playbackKey, skipAfterSeconds]);
 
   useEffect(() => {
     if (secondsLeft === 0) skipButtonRef.current?.focus();
@@ -33,7 +53,7 @@ export const PreRollAdInterstitial: React.FC<PreRollAdInterstitialProps> = ({
   return (
     <section
       dir="rtl"
-      aria-label="إعلان قبل التشغيل"
+      aria-label="إعلان فيديو قبل التشغيل"
       className="overflow-hidden rounded-2xl border border-amber-400/30 bg-[#070b14] shadow-2xl"
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-[#0c1222] px-4 py-3">
@@ -55,38 +75,38 @@ export const PreRollAdInterstitial: React.FC<PreRollAdInterstitialProps> = ({
       </div>
 
       <div className="relative aspect-video w-full bg-black">
-        {adUrl ? (
-          <iframe
-            src={adUrl}
-            title="صفحة الإعلان"
-            sandbox="allow-scripts allow-forms"
-            loading="eager"
-            tabIndex={-1}
-            className="pointer-events-none h-full w-full border-0 bg-black"
-          />
+        {sourceOrder.length > 0 && !videoFailed ? (
+          <video
+            key={`${playbackKey}:${sourceOrder.join('|')}`}
+            autoPlay
+            muted
+            controls
+            playsInline
+            preload="auto"
+            onError={() => setVideoFailed(true)}
+            onEnded={onSkip}
+            aria-label="إعلان فيديو"
+            className="h-full w-full bg-black object-contain"
+          >
+            {sourceOrder.map((source) => (
+              <source key={source} src={source} type={getSourceType(source)} />
+            ))}
+            <p>هذا المتصفح لا يدعم تشغيل فيديو الإعلان.</p>
+          </video>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-slate-200">
             <ShieldAlert className="h-8 w-8 text-amber-400" />
-            <p className="text-sm">رابط الإعلان غير متوفر حالياً.</p>
+            <p className="text-sm">
+              {videoFailed ? 'تعذر تشغيل مصدر الإعلان. سيبقى زر التخطي متاحاً بعد انتهاء العدّاد.' : 'مصادر الإعلان غير متوفرة حالياً.'}
+            </p>
           </div>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 bg-[#0c1222] px-4 py-3">
-        <p className="max-w-2xl text-xs leading-relaxed text-slate-400">
-          إذا لم تظهر صفحة الإعلان داخل الإطار، افتحها من الرابط التالي. لن يبدأ تشغيل المحتوى قبل تخطي الإعلان.
+      <div className="border-t border-slate-800 bg-[#0c1222] px-4 py-3">
+        <p className="text-xs leading-relaxed text-slate-400">
+          نختار مصدراً عشوائياً في كل مرة، ويجرّب المشغل بقية الصيغ إذا تعذر تشغيل المصدر المختار.
         </p>
-        {adUrl && (
-          <a
-            href={adUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-100 transition-colors hover:border-amber-400 hover:text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
-          >
-            <ExternalLink className="h-4 w-4" />
-            فتح الإعلان في تبويب جديد
-          </a>
-        )}
       </div>
     </section>
   );
