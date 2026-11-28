@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StreamPlayer } from './StreamPlayer';
+import { PreRollAdInterstitial } from './PreRollAdInterstitial';
+import { DEFAULT_PRE_ROLL_AD_CONFIG, PreRollAdConfig, subscribePreRollAdConfig } from '../services/firebase';
 import {
   ArrowRight,
   Maximize2,
@@ -36,6 +38,23 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
 
   const isConsolidated = 'seasons' in media;
   const isMovie = media.type === 'movie';
+  const [preRollConfig, setPreRollConfig] = useState<PreRollAdConfig>(DEFAULT_PRE_ROLL_AD_CONFIG);
+  const [passedPlaybackKey, setPassedPlaybackKey] = useState<string | null>(null);
+
+  useEffect(() => subscribePreRollAdConfig(
+    setPreRollConfig,
+    (error) => console.warn('[Pre-roll ads] Using default settings:', error.message),
+  ), []);
+
+  const playbackKey = `${media.id}:${isMovie ? 'movie' : `${seasonIndex}:${episodeIndex}`}`;
+  const adLinkHash = [...playbackKey].reduce(
+    (hash, character) => (hash * 31 + character.charCodeAt(0)) | 0,
+    0,
+  );
+  const activeAdUrl = preRollConfig.adLinks.length
+    ? preRollConfig.adLinks[Math.abs(adLinkHash) % preRollConfig.adLinks.length]
+    : '';
+  const shouldShowPreRoll = preRollConfig.enabled && Boolean(activeAdUrl) && passedPlaybackKey !== playbackKey;
 
   // Resolve current episode and season
   let currentEpisode: Episode | null = null;
@@ -107,12 +126,21 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
       {/* Main Video Viewport Container */}
       <div className={`mx-auto ${isTheaterMode ? 'max-w-full px-0' : 'max-w-6xl px-4 sm:px-6'} pt-4 sm:pt-6 transition-all duration-300`}>
         {/* StreamPlayer with strict sandbox and anti-popup engine */}
-        <StreamPlayer
-          url={videoSource}
-          title={media.title}
-          poster={media.posterUrl}
-          onTimeUpdate={onUpdateWatchProgress}
-        />
+        {shouldShowPreRoll ? (
+          <PreRollAdInterstitial
+            key={`${playbackKey}:${activeAdUrl}`}
+            adUrl={activeAdUrl}
+            skipAfterSeconds={preRollConfig.skipAfterSeconds}
+            onSkip={() => setPassedPlaybackKey(playbackKey)}
+          />
+        ) : (
+          <StreamPlayer
+            url={videoSource}
+            title={media.title}
+            poster={media.posterUrl}
+            onTimeUpdate={onUpdateWatchProgress}
+          />
+        )}
 
         {/* Video Controls & Next/Prev Controls */}
         <div className="mt-4 bg-[#0c1222] border border-slate-800/80 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">

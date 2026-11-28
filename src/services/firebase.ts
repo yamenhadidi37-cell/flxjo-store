@@ -204,6 +204,68 @@ export const subscribeAppUpdateConfig = (
   return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
 };
 
+export interface PreRollAdConfig {
+  enabled: boolean;
+  adLinks: string[];
+  skipAfterSeconds: number;
+}
+
+export const DEFAULT_PRE_ROLL_AD_CONFIG: PreRollAdConfig = {
+  enabled: true,
+  adLinks: [
+    'https://smugtone.com/d-m/F/zld.G-NOv/ZeGNUP/vermj9/uXZmUilukYP/TGcF2XNbzwAnwvOnD/kbtKNlzpYC3EM/D/Au5/MBwz',
+    'https://smugtone.com/dLmwF.z_dMGANUvdZ/GkUK/IeumM9Su/ZTUql-kgPLTxce2/NRzEAdwEOADfkntwN/zlYw3EMXDjAh5sMaynZ/sQaZW/1TpddYD/0/xT',
+  ],
+  skipAfterSeconds: 5,
+};
+
+const normalizeAdLink = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+};
+
+export const subscribePreRollAdConfig = (
+  onUpdate: (config: PreRollAdConfig) => void,
+  onError?: (error: Error) => void,
+): (() => void) => {
+  const db = getFirebaseDb();
+  if (!db) {
+    onUpdate(DEFAULT_PRE_ROLL_AD_CONFIG);
+    onError?.(new Error('تعذر تهيئة اتصال Firebase لإعدادات الإعلان.'));
+    return () => undefined;
+  }
+
+  return onSnapshot(
+    doc(db, 'app_config', 'preroll_ads'),
+    (snapshot) => {
+      const data = snapshot.data() || {};
+      const hasConfiguredLinks = Array.isArray(data.adLinks);
+      const adLinks = hasConfiguredLinks
+        ? data.adLinks.map(normalizeAdLink).filter(Boolean)
+        : DEFAULT_PRE_ROLL_AD_CONFIG.adLinks;
+      const requestedDelay = Number(data.skipAfterSeconds);
+      const skipAfterSeconds = Number.isFinite(requestedDelay)
+        ? Math.min(60, Math.max(0, Math.floor(requestedDelay)))
+        : DEFAULT_PRE_ROLL_AD_CONFIG.skipAfterSeconds;
+
+      onUpdate({
+        enabled: typeof data.enabled === 'boolean' ? data.enabled : true,
+        adLinks,
+        skipAfterSeconds,
+      });
+    },
+    (error) => {
+      onUpdate(DEFAULT_PRE_ROLL_AD_CONFIG);
+      onError?.(error);
+    },
+  );
+};
+
 export interface FetchResult {
   media: MediaItem[];
   channels: LiveChannel[];
